@@ -5,3 +5,4 @@ service-account-key.json
 .env
 .env.local
 .firebase/
+excel_dump.txt
