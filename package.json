@@ -1,0 +1,10 @@
+{
+  "name": "financial-app-pdam-seruyan",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node backend/server.js",
+    "build": "cd frontend && npx vite build",
+    "dev": "cd backend && node server.js"
+  }
+}

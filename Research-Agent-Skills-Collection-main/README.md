@@ -1,0 +1,216 @@
+# Research Agent Skills Collection
+
+*Read this in other languages: [English](#english), [Bahasa Indonesia](#bahasa-indonesia).*
+
+---
+
+### 🔥 What's New / Yang Baru (July 2026)
+* **🇮🇩 Dukungan Eksekusi Global Tanpa Polusi Proyek (Zero-Pollution) - NEW**: Mengintegrasikan *Dynamic Absolute Path Resolution* pada seluruh instruksi `SKILL.md`. Memungkinkan eksekusi skrip pembantu Python langsung dari folder instalasi pusat/global tanpa perlu mengunduh ulang atau mengotori ruang kerja proyek baru pengguna.
+* **🇬🇧 Zero-Pollution Global Execution & Dynamic Path Resolution - NEW**: Integrated *Dynamic Absolute Path Resolution* across all `SKILL.md` prompts. Allows Python helper scripts to execute directly in-place from central/global plugin installation directories without re-downloading or cluttering new local project workspaces.
+* **🇮🇩 Optimisasi Arsitektur Hybrid Python + LLM (Model Lemah)**: Menambahkan infrastruktur terprogram berbasis Python helper scripts (`json_repair.py`, `progress_tracker.py`, `parse_sections.py`, `build_sota_matrix.py`, `run_stat_analysis.py`) pada skill penulisan literature review, analisis statistika, dan orkestrasi. Menjamin jalannya riset secara terstruktur, cepat, murah, dan 100% bebas halusinasi angka/DOI meskipun dijalankan oleh model LLM kecil (seperti 7B/8B lokal).
+* **🇬🇧 Hybrid Python + LLM Optimization Architecture (Weak Models)**: Introduced Python-based CLI helpers (`json_repair.py`, `progress_tracker.py`, `parse_sections.py`, `build_sota_matrix.py`, `run_stat_analysis.py`) to the orchestrator, literature reviews, and data science skills. Guarantees highly structured, fast, cost-efficient, and 100% hallucination-free research outputs even when run on small/local LLMs (like 7B/8B models).
+* **🇮🇩 Programmatic Guardrail Anti-Halusinasi Referensi - NEW**: Menambahkan skrip verifikasi berbasis Python (`validate_references.py`) pada `citation-and-reference-validator`. Secara otomatis mencocokkan DOI, kesamaan judul (*fuzzy string matching*), penulis, dan tahun terbit terhadap basis data Crossref dan OpenAlex tanpa memerlukan konfigurasi API Key rumit, guna memblokir referensi fiktif/halusinasi dari model LLM secara mutlak.
+* **🇬🇧 Programmatic Reference Validation Guardrail - NEW**: Added an automatic Python-based verification script (`validate_references.py`) to the `citation-and-reference-validator` skill. Programmatically validates DOIs, title similarity, authors, and publication years against Crossref and OpenAlex APIs without complex API key setups to completely block hallucinated or fake reference citations.
+* **🇮🇩 Integrasi Obsidian Vault & Knowledge Graph - NEW**: Menambahkan skill `obsidian-vault-exporter` (Skill ke-24). Memungkinkan agen mentransformasikan seluruh luaran riset (literature notes, matriks SotA, hipotesis, dan sintesis) menjadi berkas Markdown Obsidian-native lengkap dengan YAML Frontmatter terstruktur, *bidirectional links* (`[[WikiLinks]]`), tag, serta query Dataview siap pakai untuk visualisasi Second Brain.
+* **🇬🇧 Obsidian Vault & Knowledge Graph Integration - NEW**: Added the `obsidian-vault-exporter` skill (24th Skill). Enables AI agents to transform all research outputs (literature notes, SotA matrices, hypotheses, and synthesis) into Obsidian-native Markdown files with structured YAML Frontmatter, *bidirectional links* (`[[WikiLinks]]`), tags, and ready-to-use Dataview queries for Second Brain visualization.
+* **🇮🇩 Integrasi Browser Chrome DevTools MCP & Digital Twin Google Form**: Menambahkan integrasi dengan server MCP `chrome-devtools`. Mendukung scraping hibrida/dual-mode pada `data-acquisition-specialist` serta fungsionalitas pengisi kuesioner otomatis pada `synthetic-data-generator` via browser headless.
+* **🇬🇧 Chrome DevTools MCP & Digital Twin Google Form Integration**: Integrated the `chrome-devtools` MCP server. Enables hybrid/dual-mode scraping for `data-acquisition-specialist` and automated questionnaire filling for `synthetic-data-generator` via a headless browser.
+* **🇮🇩 Alur Dataset-Driven Ideation (Data Descriptors)**: Menambahkan pencarian ide riset berbasis dataset sekunder dari publikasi *Data Descriptor* terbaru untuk mengekstrak rekomendasi riset pembuat data (**Potensi 1**) atau mencari korelasi variabel baru menggunakan metode analisis/ML pilihan pengguna (**Potensi 2**).
+* **🇬🇧 Dataset-Driven Ideation Flow (Data Descriptors)**: Added a new research ideation flow based on secondary datasets from recent *Data Descriptor* publications to extract future work recommendations (**Potential 1**) or check the novelty of variable correlations (**Potential 2**).
+* **🇮🇩 Integrasi API Terbuka & Indeksasi Global (WoS, SINTA)**: Menyelaraskan seluruh skill pencarian dan penilaian kualitas rujukan agar secara default memprioritaskan API terbuka gratis (OpenAlex, arXiv, PubMed) dengan skema fallback otomatis. Dilengkapi audit indeksasi Web of Science (WoS) serta peringkat akreditasi jurnal nasional SINTA Indonesia.
+* **🇬🇧 Open APIs & Global Indexing Integration (WoS, SINTA)**: Aligned all search and appraiser skills to prioritize free public APIs (OpenAlex, arXiv, PubMed) by default with automatic fallback. Includes Web of Science (WoS) and Indonesian SINTA accreditation audit support.
+
+---
+
+## Bahasa Indonesia
+
+### Kumpulan Skill yang Tersedia (24 Skills)
+
+#### 🚀 Orkestrator Utama (Starter Skill)
+*   **[research-orchestrator](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/research_orchestrator/SKILL.md)**: Pintu masuk utama untuk menjalankan alur kerja riset 5 fase otomatis penuh (termasuk personalisasi implisit) secara sekuensial.
+
+#### 📁 Fase 1 — Discovery & Framing (Masalah)
+1.  **[discover-phenomenon-and-gap](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/discover_phenomenon_and_gap/SKILL.md)**: Eksplorasi tren fenomena baru, anomali, dan pemetaan celah ilmiah (*research gap*) formal.
+2.  **[research-question-builder](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/research_question_builder/SKILL.md)**: Mengubah celah riset menjadi Pertanyaan Riset (RQ), tujuan penelitian, kontribusi, dan batasan ruang lingkup (*scope limitation*).
+3.  **[hypothesis-or-proposition-builder](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/hypothesis_or_proposition_builder/SKILL.md)**: Menyusun pernyataan hipotesis/proposisi logis disertai diagram Mermaid kerangka konseptual.
+
+#### 📁 Fase 2 — Research Methodology & Computational Experiments (Perencanaan & Eksperimen)
+4.  **[research-design-planner](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/research_design_planner/SKILL.md)**: Merancang desain metode (kuantitatif, kualitatif, mixed-method, komputasional AI/ML) beserta skenario validasi, pengujian robustness, dan studi ablasi.
+5.  **[synthetic-data-generator](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/synthetic_data_generator/SKILL.md)**: Bertindak sebagai Digital Twin / Persona Simulator untuk meng-generate dataset sintetis offline serta menyimulasikan pengisian kuesioner online (seperti Google Forms) via Chrome DevTools MCP.
+6.  **[data-acquisition-specialist](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/data_acquisition_specialist/SKILL.md)**: Mencari, mengumpulkan, dan melakukan web scraping data dengan strategi hibrida (API/HTTP cepat dengan fallback ke browser headless Chrome DevTools MCP jika terblokir).
+7.  **[data-scientist-analyst](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/data_scientist_analyst/SKILL.md)**: Memproses, menganalisis, menguji statistik (regresi, PLS), melatih model Machine Learning, dan membuat visualisasi data ilmiah secara terstruktur.
+8.  **[model-evaluator-validator](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/model_evaluator_validator/SKILL.md)**: Mengevaluasi dan memvalidasi signifikansi statistik (T-Test, ANOVA, Diebold-Mariano) dari hasil prediksi model guna memastikan ketangguhan riset.
+
+#### 📁 Fase 3 — Literature Intelligence (Kajian & Validasi)
+9.  **[literature-review-generator](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/literature_review_generator/SKILL.md)**: Penyusunan draf tinjauan pustaka bertema dengan mode khusus (Narrative, SLR, Thematic, Chronological, Critical) dan Peta Argumen.
+10. **[extract-methodology](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/extract_methodology/SKILL.md)**: Membedah paper untuk ekstraksi 10 komponen teknis wajib (tujuan, parameter, dataset, dll.).
+11. **[source-quality-appraiser](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/source_quality_appraiser/SKILL.md)**: Menilai kuartil jurnal (Q1-Q4), peringkat konferensi (CORE), bias metodologis, dan status kelayakan rujukan.
+12. **[citation-and-reference-validator](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/citation_and_reference_validator/SKILL.md)**: Audit keaslian rujukan (DOI) dan memvalidasi dukungan kontekstual kalimat rujukan (mencegah salah sitasi).
+13. **[paper-matrix-builder](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/paper_matrix_builder/SKILL.md)**: Mengotomatiskan pembuatan tabel ringkasan komparasi State-of-the-Art (SotA) dan peta bukti (*evidence map*).
+
+#### 📁 Fase 4 — Synthesis, Novelty & Publication (Sintesis, Publikasi & Vault Exporter)
+14. **[synthesize-research](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/synthesize_research/SKILL.md)**: Analisis komparasi temuan kritis, memetakan konsensus & kontradiksi, serta memisahkan opini dari bukti rujukan.
+15. **[patent-and-literature-matcher](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/patent_and_literature_matcher/SKILL.md)**: Mendeteksi potensi *prior art* dengan mencocokkan komponen klaim invensi terhadap literatur ilmiah.
+16. **[journal-recommendation-finder](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/journal_recommendation_finder/SKILL.md)**: Mencari jurnal target terbaik berdasarkan kuartil, relevansi scope, biaya APC, dan turnaround time (bebas jurnal predator).
+17. **[academic-peer-reviewer](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/academic_peer_reviewer/SKILL.md)**: Simulasi peer review independen (Accept/Revision/Reject) dengan daftar masalah mayor/minor.
+18. **[reviewer-response-and-revision](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/reviewer_response_and_revision/SKILL.md)**: Memformulasikan draf jawaban diplomatis *Response to Reviewers* dan merencanakan revisi naskah secara konsisten.
+19. **[academic-paraphraser](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/academic_paraphraser/SKILL.md)**: Memparafrase dan menghumanisasi teks akademik secara struktural untuk menghindari plagiasi dan menjaga makna asli.
+20. **[advanced-similarity-reducer](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/advanced_similarity_reducer/SKILL.md)**: Skill tingkat lanjut (ultra-advance) untuk merombak total struktur paragraf secara konseptual guna menurunkan skor similarity (Turnitin) secara ekstrem tanpa mengubah makna.
+21. **[journal-template-formatter](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/journal_template_formatter/SKILL.md)**: Bertugas mengubah, menyusun, dan memformat draf makalah riset menjadi format jurnal penelitian sesuai dengan panduan penulis (Author Guidelines) atau template yang dituju.
+22. **[obsidian-vault-exporter](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/obsidian_vault_exporter/SKILL.md)**: Bertugas mentransformasikan dan mengespor luaran riset ke dalam berkas Markdown Obsidian-native lengkap dengan YAML Frontmatter terstruktur, *WikiLinks* 2 arah, tag, serta query Dataview.
+
+#### 📁 Fase 5 — Personalization & Memori (Personalisasi)
+23. **[user_profile.json](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/user_profile.json)** (Root): Berkas profil penelitian pengguna yang diperbarui secara implisit oleh orkestrator di akhir sesi untuk menyimpan gaya penulisan, target jurnal, dan preferensi riset.
+
+#### 🔧 Utilitas (Maintenance & Update)
+24. **[agent-update-checker](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/agent_update_checker/SKILL.md)**: Bertugas mengecek pembaruan agen secara berkala dari repositori dan menawarkan instalasi pembaruan melalui prompt URL.
+
+---
+
+## English
+
+
+
+### Available Skills (24 Skills)
+
+#### 🚀 Main Orchestrator (Starter Skill)
+*   **[research-orchestrator](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/research_orchestrator/SKILL.md)**: Main entry point to run the full 5-phase research workflow sequentially and automatically (including implicit personalization).
+
+#### 📁 Phase 1 — Discovery & Framing (Problem Framing)
+1.  **[discover-phenomenon-and-gap](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/discover_phenomenon_and_gap/SKILL.md)**: Explores new phenomenon trends, anomalies, and maps formal academic research gaps.
+2.  **[research-question-builder](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/research_question_builder/SKILL.md)**: Translates gaps into Research Questions (RQs), research objectives, theoretical/methodological/practical contributions, and scope limitations.
+3.  **[hypothesis-or-proposition-builder](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/hypothesis_or_proposition_builder/SKILL.md)**: Formulates directional hypotheses or qualitative propositions with conceptual framework diagrams (Mermaid format).
+
+#### 📁 Phase 2 — Research Methodology & Computational Experiments (Planning & Experiments)
+4.  **[research-design-planner](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/research_design_planner/SKILL.md)**: Designs methodologies (quantitative, qualitative, mixed-methods, computational AI/ML experiments) with validations, robustness checks, and ablation plans.
+5.  **[synthetic-data-generator](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/synthetic_data_generator/SKILL.md)**: Acts as a Digital Twin / Persona Simulator to generate offline synthetic datasets and automate online questionnaire filling (e.g. Google Forms) via Chrome DevTools MCP.
+6.  **[data-acquisition-specialist](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/data_acquisition_specialist/SKILL.md)**: Collects and scrapes web data using a hybrid strategy (fast HTTP/API mode with automatic fallback to Chrome DevTools MCP browser automation when blocked).
+7.  **[data-scientist-analyst](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/data_scientist_analyst/SKILL.md)**: Processes, analyzes, performs statistical testing (regression, PLS), trains Machine Learning models, and creates structured scientific data visualizations.
+8.  **[model-evaluator-validator](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/model_evaluator_validator/SKILL.md)**: Evaluates and validates the statistical significance (T-Test, ANOVA, Diebold-Mariano) of model predictions to ensure research robustness.
+
+#### 📁 Phase 3 — Literature Intelligence (Review & Audit)
+9.  **[literature-review-generator](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/literature_review_generator/SKILL.md)**: Generates structured, themed literature reviews using specific modes (Narrative, SLR, Thematic, Chronological, Critical) with Argument Maps.
+10. **[extract-methodology](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/extract_methodology/SKILL.md)**: Dissects papers to extract 10 mandatory technical components (objectives, parameters, datasets, metrics, etc.).
+11. **[source-quality-appraiser](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/source_quality_appraiser/SKILL.md)**: Appraises journal quartiles (Q1-Q4), conference rankings (CORE), methodological flaws, bias risks, and overall reference eligibility.
+12. **[citation-and-reference-validator](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/citation_and_reference_validator/SKILL.md)**: Audits citation metadata (DOIs) and validates contextual citation support (preventing misattribution/fake citations).
+13. **[paper-matrix-builder](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/paper_matrix_builder/SKILL.md)**: Automates the creation of standardized State-of-the-Art (SotA) matrices and evidence maps.
+
+#### 📁 Phase 4 — Synthesis, Novelty & Publication (Synthesis, Publishing & Vault Exporter)
+14. **[synthesize-research](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/synthesize_research/SKILL.md)**: Compares critical findings, maps consensuses and debates, and separates objective evidence from agent interpretation.
+15. **[patent-and-literature-matcher](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/patent_and_literature_matcher/SKILL.md)**: Discovers potential prior art by mapping patent/invention claims against scientific publications.
+16. **[journal-recommendation-finder](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/journal_recommendation_finder/SKILL.md)**: Discovers ideal target journals by quartile, scope alignment, APC costs, and turnaround times, avoiding predatory venues.
+17. **[academic-peer-reviewer](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/academic_peer_reviewer/SKILL.md)**: Simulates peer reviews (Accept/Revision/Reject) with categorized major and minor concerns.
+18. **[reviewer-response-and-revision](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/reviewer_response_and_revision/SKILL.md)**: Drafts formal Responses to Reviewers and plans manuscript modifications consistently.
+19. **[academic-paraphraser](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/academic_paraphraser/SKILL.md)**: Paraphrases and humanizes academic texts using advanced structural rewriting to avoid plagiarism while preserving original meaning.
+20. **[advanced-similarity-reducer](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/advanced_similarity_reducer/SKILL.md)**: Ultra-advanced skill to completely restructure paragraphs conceptually, drastically reducing similarity scores (Turnitin) without losing academic weight or original meaning.
+21. **[journal-template-formatter](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/journal_template_formatter/SKILL.md)**: Responsible for modifying, structuring, and formatting research paper drafts into target journal formats based on Author Guidelines.
+22. **[obsidian-vault-exporter](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/obsidian_vault_exporter/SKILL.md)**: Transforms and exports research outputs into Obsidian-native Markdown notes with structured YAML Frontmatter, 2-way WikiLinks, tags, and Dataview queries.
+
+#### 📁 Phase 5 — Personalization & Memory (Personalization)
+23. **[user_profile.json](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/user_profile.json)** (Root): User research profile file updated implicitly by the orchestrator at the end of a session to store writing styles, target journals, and research preferences.
+
+#### 🔧 Utility (Maintenance & Update)
+24. **[agent-update-checker](file:///C:/Users/ACER/Documents/antigravity/Research-Agent/skills/agent_update_checker/SKILL.md)**: Responsible for periodically checking for agent updates from the repository and offering update installations via a URL prompt.
+
+---
+
+## Dependensi Sistem Pencarian / Search System Dependencies
+
+Seluruh skill ini memanfaatkan modul pencarian literatur bawaan sistem / All these skills utilize the system's built-in literature search modules:
+*   **arXiv API** (`literature-search-arxiv`)
+*   **OpenAlex API** (`literature-search-openalex`)
+*   **bioRxiv/medRxiv API** (`literature-search-biorxiv`)
+*   **PubMed/Entrez API** (`pubmed-database`)
+*   **Europe PMC API** (`literature-search-europepmc`)
+
+---
+
+## Cara Instalasi / Installation Methods
+
+### 🚀 Cara 1: Menggunakan NPX (Direkomendasikan) / Method 1: NPX (Recommended)
+Cara paling stabil dan bersih untuk menginstal skill di sistem Anda / The most stable and clean way to install skills into your system:
+```bash
+npx skills add https://github.com/lensetek/Research-Agent-Skills-Collection
+```
+*Menggunakan `npx skills add` sangat direkomendasikan karena dirancang khusus untuk memanajemen dependensi skill dengan lebih baik.*
+
+---
+
+### 🤖 Cara 2: Instalasi via Prompt / Method 2: Installation via Prompt
+
+#### 🇮🇩 Bahasa Indonesia
+Anda dapat memasang seluruh skill ini secara langsung menggunakan perintah/prompt kepada agen Anda:
+
+1. **Prompt Instalasi**:
+   Kirimkan perintah (*prompt*) berikut ke agen Anda untuk mengunduh dan memasang repositori:
+   ```text
+   Tolong download dan install agent skill dari url https://github.com/lensetek/Research-Agent-Skills-Collection
+   ```
+
+2. **Konfirmasi Pemasangan**:
+   Kirimkan perintah (*prompt*) berikut untuk memverifikasi jumlah skill yang terpasang di proyek ini:
+   ```text
+   Konfirmasi berapa agent skill yang ada di project ini?
+   ```
+
+---
+
+### 🇬🇧 English
+You can install all these skills directly using prompt commands to your agent:
+
+1. **Installation Prompt**:
+   Send the following prompt to your agent to download and install the repository:
+   ```text
+   Please download and install the agent skills from the URL https://github.com/lensetek/Research-Agent-Skills-Collection
+   ```
+
+2. **Installation Confirmation**:
+   Send the following prompt to verify the number of installed skills in this project:
+   ```text
+   Confirm how many agent skills are in this project?
+   ```
+
+---
+
+## Cara Menggunakan Skill / How to Use the Skills
+
+### 🚀 1. Alur Orkestrasi Otomatis (Automatic Orchestration Flow - RECOMMENDED)
+
+#### 🇮🇩 Bahasa Indonesia
+Untuk memulai seluruh alur penelitian otomatis dari satu pintu masuk, jalankan skill **`research-orchestrator`** dengan memberikan topik atau domain riset Anda.
+
+> **ID**: *"Gunakan skill **research-orchestrator** untuk memulai riset otomatis penuh tentang efektivitas Graph Neural Networks dalam fraud detection transaksi keuangan."*
+
+Setelah diaktifkan, agen akan menjalankan Fase 1 hingga Fase 5 secara otomatis dan memberikan keluaran akhir berupa **Integrated Research Dashboard** serta pembaruan profil personal (`user_profile.json`).
+
+---
+
+#### 🇬🇧 English
+To start the entire automated research workflow from a single entry point, run the **`research-orchestrator`** skill by providing your research topic or domain.
+
+> **EN**: *"Use the **research-orchestrator** skill to start a full automatic research flow on the effectiveness of Graph Neural Networks for financial transaction fraud detection."*
+
+Once activated, the agent will run Phase 1 to Phase 5 automatically and provide the final output in the form of an **Integrated Research Dashboard** and personal profile updates (`user_profile.json`).
+
+---
+
+### 🛠️ 2. Menjalankan Skill Secara Terpisah (Individual Execution)
+Anda juga dapat memicu setiap skill secara terpisah menggunakan perintah berbahasa alami:
+
+> **ID**: *"Gunakan skill **academic-peer-reviewer** untuk meninjau draf paper ini secara kritis."*
+>
+> **EN**: *"Use the **academic-peer-reviewer** skill to critically review this manuscript draft."*
+
+---
+
+## Personalization & Memori Riset / Personalization & Research Memory
+
+### 🇮🇩 Bahasa Indonesia
+Sistem ini mendukung **Implicit Personalization** secara otomatis:
+* **Membaca Profil**: Di awal eksekusi `research-orchestrator`, agen akan mencari dan memuat preferensi dari berkas `user_profile.json` di root direktori (jika ada).
+* **Belajar secara Implisit**: Di akhir sesi, agen akan menganalisis percakapan/umpan balik Anda secara otomatis dan memperbarui berkas `user_profile.json` agar sesi berikutnya semakin pintar dan terpersonalisasi.
+
+### 🇬🇧 English
+This system automatically supports **Implicit Personalization**:
+* **Load Profile**: At the start of `research-orchestrator` execution, the agent looks for and loads preferences from `user_profile.json` at the root directory (if present).
+* **Implicit Learning**: At the end of the session, the agent analyzes your conversation/feedback and automatically updates `user_profile.json` to make subsequent sessions smarter and more personalized.
