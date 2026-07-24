@@ -11,7 +11,7 @@ module.exports = function(db) {
       LEFT JOIN jurnal j ON j.transaksi_id = t.id
       LEFT JOIN akun a ON a.id = j.akun_id
       GROUP BY t.id
-      ORDER BY t.tanggal DESC, t.id DESC
+      ORDER BY t.id DESC
     `);
 
     const result = transaksi.map(t => ({
