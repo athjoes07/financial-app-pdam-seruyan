@@ -3,6 +3,7 @@ const { generateJournal } = require('./journal-report');
 const { generateBukuBesar } = require('./buku-besar-report');
 const { generateNeracaLajur } = require('./neraca-lajur-report');
 const { generateFinancialStatements } = require('./financial-statements');
+const { generateAuditTrail } = require('./audit-trail-report');
 
 function generateAllReports(db, outputDir) {
   const fs = require('fs');
@@ -33,6 +34,12 @@ function generateAllReports(db, outputDir) {
     generateFinancialStatements(db, fsPath);
     results.push({ file: 'Neraca, RL, Arus Kas, ekuitas & Rincian 2026.xlsx', status: 'OK' });
   } catch (e) { results.push({ file: 'Neraca, RL, Arus Kas, ekuitas & Rincian 2026.xlsx', status: 'ERROR', error: e.message }); }
+
+  try {
+    const atPath = path.join(outputDir, 'AUDIT_TRAIL.xlsx');
+    generateAuditTrail(db, atPath);
+    results.push({ file: 'AUDIT_TRAIL.xlsx', status: 'OK' });
+  } catch (e) { results.push({ file: 'AUDIT_TRAIL.xlsx', status: 'ERROR', error: e.message }); }
 
   return results;
 }

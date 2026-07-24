@@ -79,6 +79,18 @@ async function initDatabase() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp TEXT DEFAULT (datetime('now')),
+      kategori TEXT NOT NULL,
+      sumber_file TEXT DEFAULT '',
+      deskripsi TEXT NOT NULL,
+      status TEXT DEFAULT 'SUCCESS',
+      detail TEXT DEFAULT ''
+    )
+  `);
+
   const count = queryOne('SELECT COUNT(*) as cnt FROM akun');
   if (count.cnt === 0) {
     const stmt = db.prepare('INSERT INTO akun (kode, nama, tipe, saldo_normal, kategori) VALUES (?, ?, ?, ?, ?)');
@@ -91,7 +103,11 @@ async function initDatabase() {
     saveDb();
   }
 
-  return { db, queryAll, queryOne, run };
+  db.queryAll = queryAll;
+  db.queryOne = queryOne;
+  db.queryRun = run;
+
+  return db;
 }
 
 module.exports = { initDatabase, queryAll, queryOne, run };
