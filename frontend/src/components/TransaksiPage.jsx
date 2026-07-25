@@ -47,7 +47,7 @@ export default function TransaksiPage() {
     setError('')
 
     if (!isBalanced) {
-      setError(`Entri jurnal tidak berimbang! Total Debit (Rp ${totalDebit.toLocaleString()}) harus sama dengan Total Kredit (Rp ${totalKredit.toLocaleString()}).`)
+      setError(`Jurnal belum berimbang! Debit Rp ${totalDebit.toLocaleString()} ≠ Kredit Rp ${totalKredit.toLocaleString()}`)
       return
     }
 
@@ -66,165 +66,176 @@ export default function TransaksiPage() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) return
+    if (!confirm('Hapus transaksi ini?')) return
     await deleteTransaksi(id)
     loadTransaksi()
   }
 
-  const filteredTransaksi = transaksi.filter(t => 
+  const filteredTransaksi = transaksi.filter(t =>
     t.deskripsi.toLowerCase().includes(search.toLowerCase()) ||
     t.tanggal.includes(search) ||
-    t.jurnal.some(j => j.akun_nama?.toLowerCase().includes(search.toLowerCase()))
+    t.jurnal?.some(j => j.akun_nama?.toLowerCase().includes(search.toLowerCase()))
   )
 
+  const formatRupiah = (num) => {
+    return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(num)
+  }
+
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <div>
-          <h2 style={{ margin: 0, color: '#1a237e', fontFamily: 'Outfit, sans-serif' }}>Jurnal Transaksi Keuangan</h2>
-          <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.9rem' }}>Pencatatan Entri Ganda (Double-Entry Bookkeeping)</p>
+    <div className="page">
+      {/* Page Header */}
+      <div className="page-header">
+        <div className="page-title-row">
+          <div>
+            <h1 className="page-title">Transaksi</h1>
+            <p className="page-subtitle">Pencatatan jurnal double-entry</p>
+          </div>
+          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+            {showForm ? '✖ Tutup' : '➕ Transaksi Baru'}
+          </button>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? '✖️ Tutup Form' : '➕ Input Transaksi Baru'}
-        </button>
       </div>
 
+      {/* Form Transaksi Baru */}
       {showForm && (
-        <div className="card-modern" style={{ border: '2px solid #6366f1' }}>
-          <div className="card-header-row">
-            <h3 className="card-title">📝 Form Entri Jurnal Transaksi Baru</h3>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <span className={`badge ${isBalanced ? 'badge-debit' : 'badge-kredit'}`} style={{ fontSize: '0.85rem' }}>
-                {isBalanced ? '✓ Jurnal Berimbang (Balanced)' : '⚠️ Belum Berimbang'}
-              </span>
-            </div>
+        <div className="form-card">
+          <div className="card-header">
+            <h3 className="card-title">Jurnal Transaksi Baru</h3>
+            <span className={`status-pill ${isBalanced ? 'success' : 'warning'}`}>
+              {isBalanced ? '✓ Berimbang' : '⚠️ Belum Berimbang'}
+            </span>
           </div>
 
-          {error && <div className="error-msg">{error}</div>}
+          {error && <div className="alert alert-danger">{error}</div>}
 
           <form onSubmit={handleSubmit}>
-            <div className="grid-2">
+            <div className="form-row">
               <div className="form-group">
-                <label>Tanggal Transaksi</label>
+                <label>Tanggal</label>
                 <input type="date" value={form.tanggal} onChange={e => setForm(f => ({ ...f, tanggal: e.target.value }))} required />
               </div>
               <div className="form-group">
-                <label>Uraian / Deskripsi Transaksi</label>
-                <input placeholder="Contoh: Pembayaran Biaya Pemeliharaan Kendaraan Kantor" value={form.deskripsi} onChange={e => setForm(f => ({ ...f, deskripsi: e.target.value }))} required />
+                <label>Deskripsi</label>
+                <input placeholder="Uraian transaksi" value={form.deskripsi} onChange={e => setForm(f => ({ ...f, deskripsi: e.target.value }))} required />
               </div>
             </div>
 
-            <h4 style={{ margin: '1rem 0 0.75rem 0', color: '#334155', fontSize: '0.9rem', textTransform: 'uppercase' }}>Rincian Pos Debet & Kredit</h4>
-            
+            <h4 style={{ margin: '1rem 0 0.75rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Rincian Debit & Kredit</h4>
+
             {form.entries.map((entry, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'end', marginBottom: '0.75rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>KODE & NAMA AKUN</label>
-                  <select value={entry.akun_id} onChange={e => updateEntry(i, 'akun_id', e.target.value)} required style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px' }}>
-                    <option value="">-- Pilih Akun COA --</option>
-                    {akun.map(a => (
-                      <option key={a.id} value={a.id}>{a.kode} - {a.nama}</option>
-                    ))}
-                  </select>
+              <div key={i} className="journal-entry">
+                <div className="journal-entry-row">
+                  <div>
+                    <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>Akun</label>
+                    <select value={entry.akun_id} onChange={e => updateEntry(i, 'akun_id', e.target.value)} required>
+                      <option value="">Pilih akun</option>
+                      {akun.map(a => (
+                        <option key={a.id} value={a.id}>{a.kode} - {a.nama}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--info)', marginBottom: '0.25rem', display: 'block' }}>Debit (Rp)</label>
+                    <input type="number" min="0" step="0.01" placeholder="0" value={entry.debit} onChange={e => updateEntry(i, 'debit', e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--danger)', marginBottom: '0.25rem', display: 'block' }}>Kredit (Rp)</label>
+                    <input type="number" min="0" step="0.01" placeholder="0" value={entry.kredit} onChange={e => updateEntry(i, 'kredit', e.target.value)} />
+                  </div>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => removeEntry(i)} style={{ height: '38px', width: '38px', padding: 0, marginTop: '1.25rem' }}>
+                    ✕
+                  </button>
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#2563eb' }}>DEBET (RP)</label>
-                  <input type="number" min="0" step="0.01" placeholder="0" value={entry.debit} onChange={e => updateEntry(i, 'debit', e.target.value)} style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontFamily: 'JetBrains Mono' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#dc2626' }}>KREDIT (RP)</label>
-                  <input type="number" min="0" step="0.01" placeholder="0" value={entry.kredit} onChange={e => updateEntry(i, 'kredit', e.target.value)} style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontFamily: 'JetBrains Mono' }} />
-                </div>
-                <button type="button" className="btn btn-danger btn-sm" onClick={() => removeEntry(i)} style={{ height: '38px', width: '38px', padding: 0 }}>✕</button>
               </div>
             ))}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', padding: '0.75rem', background: '#eef2ff', borderRadius: '10px' }}>
-              <button type="button" className="btn btn-outline btn-sm" onClick={addEntry}>
-                ➕ Tambah Baris Jurnal
+            <div className="journal-entry-total">
+              <span className="label">Total: Debit <span className="debit">Rp {formatRupiah(totalDebit)}</span> | Kredit <span className="kredit">Rp {formatRupiah(totalKredit)}</span></span>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={addEntry}>
+                ➕ Tambah Baris
               </button>
-              <div style={{ fontFamily: 'JetBrains Mono', fontSize: '0.88rem', fontWeight: 700 }}>
-                Total D: <span style={{ color: '#2563eb' }}>Rp {totalDebit.toLocaleString()}</span> | Total K: <span style={{ color: '#dc2626' }}>Rp {totalKredit.toLocaleString()}</span>
-              </div>
             </div>
 
-            <div style={{ marginTop: '1.25rem', textAlign: 'right' }}>
-              <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem 2rem' }}>
-                💾 Simpan Transaksi Ke Database
+            <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+              <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem 1.5rem' }}>
+                💾 Simpan Transaksi
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Main Transactions List */}
-      <div className="card-modern">
-        <div className="card-header-row">
-          <h3 className="card-title">📜 Daftar Histori Jurnal Transaksi ({filteredTransaksi.length})</h3>
-          <div style={{ width: '300px' }}>
+      {/* Daftar Transaksi */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">
+            Riwayat Transaksi
+            <span className="status-pill neutral" style={{ marginLeft: '0.5rem' }}>{filteredTransaksi.length}</span>
+          </h3>
+          <div style={{ width: '220px' }}>
             <input
-              placeholder="🔍 Cari transaksi / akun..."
+              placeholder="Cari transaksi..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '0.5rem 0.8rem', border: '1.5px solid #cbd5e1', borderRadius: '10px', fontSize: '0.85rem' }}
+              style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', fontSize: '0.875rem' }}
             />
           </div>
         </div>
 
-        <div className="table-wrap">
-          <table className="table-modern">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Tanggal</th>
-                <th>Deskripsi Transaksi</th>
-                <th>Rincian Jurnal (Akun & Nominal)</th>
-                <th className="text-right">Total Transaksi</th>
-                <th className="text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTransaksi.map(t => {
-                const total = t.jurnal?.reduce((s, j) => s + (parseFloat(j.debit) || 0), 0) || 0
-                return (
-                  <tr key={t.id}>
-                    <td className="font-mono" style={{ fontWeight: 700, color: '#4f46e5' }}>#{t.id}</td>
-                    <td className="font-mono">{t.tanggal}</td>
-                    <td style={{ fontWeight: 600, color: '#0f172a' }}>{t.deskripsi}</td>
-                    <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        {t.jurnal?.map((j, idx) => (
-                          <div key={idx} style={{ fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', gap: '1rem', background: '#f8fafc', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
-                            <span><strong>{j.kode}</strong> - {j.akun_nama}</span>
-                            <span className="font-mono">
-                              {j.debit > 0 && <span className="badge badge-debit">D: Rp {parseFloat(j.debit).toLocaleString()}</span>}
-                              {j.kredit > 0 && <span className="badge badge-kredit">K: Rp {parseFloat(j.kredit).toLocaleString()}</span>}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="text-right font-mono font-bold" style={{ color: '#0f172a' }}>
-                      Rp {total.toLocaleString('id-ID')}
-                    </td>
-                    <td className="text-center">
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(t.id)}>
-                        🗑️ Hapus
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-              {filteredTransaksi.length === 0 && (
+        {filteredTransaksi.length > 0 ? (
+          <div className="table-wrap">
+            <table className="table-modern">
+              <thead>
                 <tr>
-                  <td colSpan={6} className="text-muted text-center" style={{ padding: '2rem' }}>
-                    Tidak ada transaksi yang cocok dengan pencarian.
-                  </td>
+                  <th>Tanggal</th>
+                  <th>Deskripsi</th>
+                  <th className="hide-mobile">Rincian</th>
+                  <th className="text-right">Jumlah</th>
+                  <th className="text-center">Aksi</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filteredTransaksi.map(t => {
+                  const total = t.jurnal?.reduce((s, j) => s + (parseFloat(j.debit) || 0), 0) || 0
+                  return (
+                    <tr key={t.id}>
+                      <td className="font-mono">{t.tanggal}</td>
+                      <td style={{ fontWeight: 500 }}>{t.deskripsi}</td>
+                      <td className="hide-mobile">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
+                          {t.jurnal?.map((j, idx) => (
+                            <div key={idx} style={{ fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+                              <span><strong>{j.kode}</strong> - {j.akun_nama}</span>
+                              <span className="font-mono" style={{ whiteSpace: 'nowrap' }}>
+                                {j.debit > 0 && <span style={{ color: 'var(--info)', fontWeight: 600 }}>D: {formatRupiah(j.debit)}</span>}
+                                {j.kredit > 0 && <span style={{ color: 'var(--danger)', fontWeight: 600 }}>K: {formatRupiah(j.kredit)}</span>}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="text-right font-mono font-bold">
+                        Rp {formatRupiah(total)}
+                      </td>
+                      <td className="text-center">
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(t.id)}>
+                          🗑
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <div className="empty-state-icon">📭</div>
+            <div className="empty-state-text">
+              {search ? 'Tidak ada transaksi yang cocok' : 'Belum ada transaksi'}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

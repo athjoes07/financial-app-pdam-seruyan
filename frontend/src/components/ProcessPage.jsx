@@ -71,159 +71,148 @@ export default function ProcessPage() {
   }
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <div>
-          <h2 style={{ margin: 0, color: '#1a237e' }}>Engine Keuangan (Input → Output Pipeline)</h2>
-          <p style={{ margin: '0.25rem 0 0 0', color: '#666' }}>Otomatisasi pengolahan berkas mentah input menjadi 5 laporan keuangan formal</p>
-        </div>
-        <button
-          className="btn btn-primary"
-          onClick={handleProcess}
-          disabled={loading}
-          style={{ padding: '0.85rem 2rem', fontSize: '1.05rem', fontWeight: 600, boxShadow: '0 4px 12px rgba(26,35,126,0.3)' }}
-        >
-          {loading ? '⚡ Memproses ETL & Generasi Laporan...' : '🚀 PROSES ALL INPUT & GENERATE 5 OUTPUT EXCEL'}
-        </button>
-      </div>
-
-      {/* Visual Correlation Flow Card */}
-      <div className="card" style={{ background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)', color: '#fff', borderRadius: '12px', padding: '1.5rem', marginBottom: '1.5rem' }}>
-        <h3 style={{ color: '#9fa8da', marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem' }}>🌐 ALUR ALGORITMA INTEGRASI DATA</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto 1fr', gap: '1rem', alignItems: 'center', textAlign: 'center' }}>
-          <div style={{ background: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)' }}>
-            <div style={{ fontSize: '1.8rem' }}>📁</div>
-            <div style={{ fontWeight: 600, marginTop: '0.5rem' }}>FOLDER INPUT</div>
-            <div style={{ fontSize: '0.85rem', color: '#c5cae9', marginTop: '0.25rem' }}>{inputFiles.length} File Mentah (DRD, LPP, Voucher, Persediaan, Asset)</div>
+    <div className="page">
+      {/* Page Header */}
+      <div className="page-header">
+        <div className="page-title-row">
+          <div>
+            <h1 className="page-title">Proses ETL</h1>
+            <p className="page-subtitle">Pengolahan input → generate 5 laporan output</p>
           </div>
-          <div style={{ fontSize: '1.5rem', color: '#9fa8da' }}>➔</div>
-          <div style={{ background: 'rgba(255,255,255,0.15)', padding: '1.25rem 1rem', borderRadius: '8px', border: '1px solid #7986cb' }}>
-            <div style={{ fontSize: '1.8rem' }}>⚙️</div>
-            <div style={{ fontWeight: 700, color: '#e8eaf6', marginTop: '0.5rem' }}>ENGINE ETL & LEDGER</div>
-            <div style={{ fontSize: '0.85rem', color: '#c5cae9', marginTop: '0.25rem' }}>Parsing → Normalisasi COA → Balance Debet=Kredit → Trial Balance</div>
-          </div>
-          <div style={{ fontSize: '1.5rem', color: '#9fa8da' }}>➔</div>
-          <div style={{ background: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)' }}>
-            <div style={{ fontSize: '1.8rem' }}>📊</div>
-            <div style={{ fontWeight: 600, marginTop: '0.5rem' }}>FOLDER OUTPUT</div>
-            <div style={{ fontSize: '0.85rem', color: '#c5cae9', marginTop: '0.25rem' }}>5 Laporan Formatted Excel (.xlsx)</div>
-          </div>
+          <button
+            className="btn btn-primary"
+            onClick={handleProcess}
+            disabled={loading}
+          >
+            {loading ? '⚡ Memproses...' : '🚀 Proses Sekarang'}
+          </button>
         </div>
       </div>
 
-      {error && <div className="error-msg" style={{ marginBottom: '1.5rem' }}>{error}</div>}
+      {/* Pipeline Visualization */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">Pipeline</h3>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto 1fr', gap: '0.5rem', alignItems: 'center', textAlign: 'center' }}>
+          <div className="summary-card" style={{ textAlign: 'center', padding: '0.875rem 0.5rem' }}>
+            <div style={{ fontSize: '1.5rem' }}>📁</div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 600, marginTop: '0.25rem' }}>Input</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{inputFiles.length} file</div>
+          </div>
+          <span style={{ color: 'var(--primary)', fontSize: '1.125rem' }}>→</span>
+          <div className="summary-card" style={{ textAlign: 'center', padding: '0.875rem 0.5rem', background: 'var(--primary-light)', borderColor: 'var(--primary)' }}>
+            <div style={{ fontSize: '1.5rem' }}>⚙️</div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, marginTop: '0.25rem' }}>ETL</div>
+            <div style={{ fontSize: '0.65rem', color: 'var(--primary-dark)' }}>Parse → Jurnal</div>
+          </div>
+          <span style={{ color: 'var(--primary)', fontSize: '1.125rem' }}>→</span>
+          <div className="summary-card" style={{ textAlign: 'center', padding: '0.875rem 0.5rem' }}>
+            <div style={{ fontSize: '1.5rem' }}>📊</div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 600, marginTop: '0.25rem' }}>Output</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>5 Laporan</div>
+          </div>
+        </div>
+      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-        {/* Input Files Card */}
+      {error && <div className="alert alert-danger">{error}</div>}
+
+      {/* Input & Output Files */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }} className="grid-2">
+        {/* Input Files */}
         <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ margin: 0, color: '#1a237e' }}>📂 Berkas di Folder Input ({inputFiles.length})</h3>
-            <label className="btn btn-secondary" style={{ cursor: 'pointer', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
-              ➕ Upload File Input
+          <div className="card-header">
+            <h3 className="card-title">📂 Input ({inputFiles.length})</h3>
+            <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
+              ➕ Upload
               <input type="file" accept=".xls,.xlsx" onChange={handleFileUpload} style={{ display: 'none' }} />
             </label>
           </div>
-          {uploadStatus && <div style={{ fontSize: '0.85rem', marginBottom: '0.75rem', padding: '0.5rem', borderRadius: '4px', background: '#e8eaf6', color: '#1a237e' }}>{uploadStatus}</div>}
-          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Nama File</th>
-                  <th className="text-right">Ukuran</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inputFiles.map((f, i) => (
-                  <tr key={i}>
-                    <td>
-                      <span style={{ marginRight: '0.5rem' }}>📄</span>
-                      <strong style={{ fontSize: '0.9rem' }}>{f.filename}</strong>
-                    </td>
-                    <td className="text-right" style={{ fontSize: '0.85rem', color: '#666' }}>
-                      {(f.size / 1024).toFixed(1)} KB
-                    </td>
+
+          {uploadStatus && <div className="alert alert-info" style={{ fontSize: '0.8rem' }}>{uploadStatus}</div>}
+
+          {inputFiles.length > 0 ? (
+            <div className="table-wrap" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              <table className="table-modern">
+                <thead>
+                  <tr>
+                    <th>Nama File</th>
+                    <th className="text-right">Ukuran</th>
                   </tr>
-                ))}
-                {inputFiles.length === 0 && (
-                  <tr><td colSpan={2} style={{ textAlign: 'center', color: '#999', padding: '1rem' }}>Belum ada file di folder input</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {inputFiles.map((f, i) => (
+                    <tr key={i}>
+                      <td>📄 {f.filename}</td>
+                      <td className="text-right font-mono" style={{ fontSize: '0.8rem' }}>{(f.size / 1024).toFixed(1)} KB</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-state-icon">📁</div>
+              <div className="empty-state-text">Belum ada file input</div>
+            </div>
+          )}
         </div>
 
-        {/* Output Download Center Card */}
+        {/* Output Files */}
         <div className="card">
-          <h3 style={{ margin: '0 0 1rem 0', color: '#1a237e' }}>📥 Download Center (5 Output Reports)</h3>
-          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Nama File Laporan</th>
-                  <th className="text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  'Journal 2026.xlsx',
-                  'BUKU BESAR 2026.xlsx',
-                  'Neraca Lajur 2026.xlsx',
-                  'Neraca, RL, Arus Kas, ekuitas & Rincian 2026.xlsx',
-                  'AUDIT_TRAIL.xlsx'
-                ].map((name, i) => {
-                  const existing = outputFiles.find(of => of.filename === name)
-                  return (
-                    <tr key={i}>
-                      <td>
-                        <div style={{ fontWeight: 600, color: '#2c3e50', fontSize: '0.9rem' }}>{name}</div>
-                        {existing && (
-                          <div style={{ fontSize: '0.75rem', color: '#7f8c8d' }}>
-                            Ukuran: {(existing.size / 1024).toFixed(1)} KB
-                          </div>
-                        )}
-                      </td>
-                      <td className="text-center">
-                        <a
-                          href={`/api/process/download/${encodeURIComponent(name)}`}
-                          download
-                          className="btn btn-primary"
-                          style={{ textDecoration: 'none', padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-block' }}
-                        >
-                          ⬇️ Unduh Excel
-                        </a>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          <div className="card-header">
+            <h3 className="card-title">📥 Output (5 Laporan)</h3>
           </div>
+          {[
+            'Journal 2026.xlsx',
+            'BUKU BESAR 2026.xlsx',
+            'Neraca Lajur 2026.xlsx',
+            'Neraca, RL, Arus Kas, ekuitas & Rincian 2026.xlsx',
+            'AUDIT_TRAIL.xlsx'
+          ].map((name, i) => {
+            const existing = outputFiles.find(of => of.filename === name)
+            return (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.625rem 0', borderBottom: i < 4 ? '1px solid var(--border-subtle)' : 'none' }}>
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>{name}</div>
+                  {existing && (
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      {(existing.size / 1024).toFixed(1)} KB
+                    </div>
+                  )}
+                </div>
+                <a
+                  href={`/api/process/download/${encodeURIComponent(name)}`}
+                  download
+                  className="btn btn-primary btn-sm"
+                  style={{ textDecoration: 'none' }}
+                >
+                  ⬇️
+                </a>
+              </div>
+            )
+          })}
         </div>
       </div>
 
-      {/* Execution Details Result */}
+      {/* Execution Result */}
       {result && (
         <div className="card">
-          <h3 style={{ marginTop: 0, color: '#2e7d32' }}>✅ Hasil Eksekusi Pipeline ETL</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div>
-              <h4>Log Pemrosesan File Input:</h4>
-              <ul>
-                {result.process?.files_processed.map((f, i) => <li key={i}>{f}</li>)}
-                {result.bulk?.files_processed.map((f, i) => <li key={i}>{f}</li>)}
-              </ul>
-            </div>
-            <div>
-              <h4>Status Generasi Laporan Output:</h4>
-              <ul>
-                {result.reports?.map((r, i) => (
-                  <li key={i} style={{ color: r.status === 'OK' ? '#2e7d32' : '#c62828', fontWeight: 600 }}>
-                    {r.file}: {r.status}
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <div className="card-header">
+            <h3 className="card-title">✅ Hasil Eksekusi</h3>
+            <span className={`status-pill ${result.reports?.every(r => r.status === 'OK') ? 'success' : 'warning'}`}>
+              {result.reports?.filter(r => r.status === 'OK').length || 0} / {result.reports?.length || 0} Berhasil
+            </span>
           </div>
+
+          {result.reports?.map((r, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontSize: '0.85rem' }}>{r.file}</div>
+              <span className={`status-pill ${r.status === 'OK' ? 'success' : 'danger'}`}>
+                {r.status === 'OK' ? '✓ OK' : '✕ Gagal'}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>
