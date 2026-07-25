@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Dashboard from './components/Dashboard'
 import TransaksiPage from './components/TransaksiPage'
 import LabaRugi from './components/LabaRugi'
 import Neraca from './components/Neraca'
 import ProcessPage from './components/ProcessPage'
 import FirebasePage from './components/FirebasePage'
+import { getTransaksi } from './api'
 import './style.css'
 
 const navItems = [
@@ -20,6 +21,24 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentTime, setCurrentTime] = useState('')
 
+  // Search feature states
+  const [globalSearch, setGlobalSearch] = useState('')
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false)
+  const [transaksiData, setTransaksiData] = useState([])
+  const [transaksiSearchParam, setTransaksiSearchParam] = useState('')
+  const searchInputRef = useRef(null)
+
+  // Notification states
+  const [notifications, setNotifications] = useState([
+    { id: 1, text: 'Pembaruan sistem berhasil diaplikasikan.', unread: true, time: 'Baru saja' },
+    { id: 2, text: 'Fitur pencarian instan telah aktif.', unread: true, time: '5 menit lalu' },
+    { id: 3, text: 'Backup data mingguan selesai.', unread: false, time: 'Kemarin' },
+  ])
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false)
+  const notifRef = useRef(null)
+
+  const unreadCount = notifications.filter(n => n.unread).length
+
   useEffect(() => {
     const updateTime = () => {
       const now = new Date()
@@ -29,6 +48,53 @@ export default function App() {
     const timer = setInterval(updateTime, 60000)
     return () => clearInterval(timer)
   }, [])
+
+  // Prefetch transactions for fast searching
+  useEffect(() => {
+    getTransaksi().then(setTransaksiData).catch(() => {})
+  }, [])
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchInputRef.current && !searchInputRef.current.contains(e.target)) {
+        setShowSearchDropdown(false)
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const filteredMenus = navItems.filter(item => 
+    item.label.toLowerCase().includes(globalSearch.toLowerCase())
+  )
+
+  const filteredTransaksi = Array.isArray(transaksiData) ? transaksiData.filter(t => 
+    String(t.deskripsi || '').toLowerCase().includes(String(globalSearch || '').toLowerCase()) ||
+    String(t.nominal || '').includes(globalSearch || '') ||
+    (Array.isArray(t.jurnal) && t.jurnal.some(j => String(j.akun_nama || '').toLowerCase().includes(String(globalSearch || '').toLowerCase())))
+  ).slice(0, 5) : []
+
+  const handleSearchSelect = (targetPage, searchParam = '') => {
+    setPage(targetPage)
+    setTransaksiSearchParam(searchParam)
+    setGlobalSearch('')
+    setShowSearchDropdown(false)
+  }
+
+  const markNotificationsAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, unread: false })))
+  }
+
+  const toggleNotif = () => {
+    if (!showNotifDropdown && unreadCount > 0) {
+      markNotificationsAsRead()
+    }
+    setShowNotifDropdown(!showNotifDropdown)
+  }
 
   return (
     <div className="app-layout">
@@ -80,17 +146,102 @@ export default function App() {
             </div>
           </div>
           
-          <div className="topbar-search">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" placeholder="Cari transaksi, menu, laporan..." />
+          <div className="topbar-search-container" ref={searchInputRef}>
+            <div className="topbar-search">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input 
+                type="text" 
+                placeholder="Cari transaksi, menu, laporan..." 
+                value={globalSearch}
+                onChange={e => {
+                  setGlobalSearch(e.target.value)
+                  setShowSearchDropdown(true)
+                }}
+                onFocus={() => setShowSearchDropdown(true)}
+              />
+            </div>
+            
+            {showSearchDropdown && globalSearch && (
+              <div className="search-dropdown">
+                {filteredMenus.length > 0 && (
+                  <div className="search-dropdown-section">Menu</div>
+                )}
+                {filteredMenus.map(menu => (
+                  <div 
+                    key={menu.id} 
+                    className="search-dropdown-item"
+                    onClick={() => handleSearchSelect(menu.id)}
+                  >
+                    <span className="icon">{menu.icon}</span>
+                    <span>{menu.label}</span>
+                  </div>
+                ))}
+
+                {filteredTransaksi.length > 0 && (
+                  <div className="search-dropdown-section" style={{ marginTop: filteredMenus.length ? '0.5rem' : 0 }}>
+                    Transaksi
+                  </div>
+                )}
+                {filteredTransaksi.map(t => (
+                  <div 
+                    key={t.id} 
+                    className="search-dropdown-item"
+                    onClick={() => handleSearchSelect('transaksi', globalSearch)}
+                  >
+                    <span className="icon">📄</span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span>{t.deskripsi}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {t.tanggal} • Rp {new Intl.NumberFormat('id-ID').format(t.nominal)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+
+                {filteredMenus.length === 0 && filteredTransaksi.length === 0 && (
+                  <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                    Tidak ada hasil untuk "{globalSearch}"
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="topbar-right">
             <span className="topbar-clock">{currentTime}</span>
             <span className="topbar-status">Online</span>
+            
+            <div className="notif-container" ref={notifRef}>
+              <button 
+                className="notif-btn" 
+                title="Notifikasi"
+                onClick={toggleNotif}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
+              </button>
+
+              {showNotifDropdown && (
+                <div className="notif-dropdown">
+                  <div className="notif-dropdown-header">Notifikasi</div>
+                  <div className="notif-dropdown-list">
+                    {notifications.map(n => (
+                      <div key={n.id} className={`notif-item ${n.unread ? 'unread' : ''}`}>
+                        <div className="notif-text">{n.text}</div>
+                        <div className="notif-time">{n.time}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button className="toggle-btn hide-mobile" onClick={() => setSidebarOpen(!sidebarOpen)} title="Menu">
               ☰
             </button>
@@ -100,7 +251,7 @@ export default function App() {
         {/* Main Content */}
         <main className="main-content">
           {page === 'dashboard' && <Dashboard setPage={setPage} />}
-          {page === 'transaksi' && <TransaksiPage />}
+          {page === 'transaksi' && <TransaksiPage initialSearch={transaksiSearchParam} key={transaksiSearchParam} />}
           {page === 'laba-rugi' && <LabaRugi />}
           {page === 'neraca' && <Neraca />}
           {page === 'process' && <ProcessPage />}

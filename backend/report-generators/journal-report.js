@@ -85,7 +85,7 @@ function generateJournal(db, outputPath) {
   dvudSheet['!cols'] = [{ wch: 10 }, { wch: 8 }, { wch: 35 }, { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 15 }];
   XLSX.utils.book_append_sheet(wb, dvudSheet, 'DVUD');
 
-  XLSX.writeFile(wb, outputPath);
+  XLSX.writeFile(wb, outputPath, { compression: true, bookType: 'xlsx' });
   return outputPath;
 }
 

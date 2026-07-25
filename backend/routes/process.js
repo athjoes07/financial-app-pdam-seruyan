@@ -9,8 +9,84 @@ const { initDatabase } = require('../database');
 module.exports = function(db) {
   const router = express.Router();
   const inputDir = path.join(__dirname, '..', '..', 'input');
+  const inputTrashDir = path.join(__dirname, '..', 'input-trash');
   const outputDir = path.join(__dirname, '..', '..', 'output-app');
   const sampleOutputDir = path.join(__dirname, '..', '..', 'output');
+
+  if (!fs.existsSync(inputTrashDir)) fs.mkdirSync(inputTrashDir, { recursive: true });
+
+  router.delete('/delete-input/:filename', (req, res) => {
+    try {
+      const fname = decodeURIComponent(req.params.filename);
+      const filePath = path.join(inputDir, fname);
+      const trashPath = path.join(inputTrashDir, fname);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'File tidak ditemukan' });
+      }
+
+      const stat = fs.statSync(filePath);
+      const fileDate = new Date(stat.mtime).toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Move to trash
+      fs.renameSync(filePath, trashPath);
+
+      if (fileDate === today) {
+        // Delete transactions AND related jurnal from database
+        // First enable FK support (SQLite needs this explicitly)
+        db.queryRun('PRAGMA foreign_keys = ON');
+        // Delete orphan jurnal entries tied to this file's transactions
+        db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ?)', [fname]);
+        db.queryRun('DELETE FROM transaksi WHERE sumber = ?', [fname]);
+        // Also clean up any remaining orphan journal entries just in case
+        db.queryRun('DELETE FROM jurnal WHERE transaksi_id NOT IN (SELECT id FROM transaksi)');
+        res.json({ message: 'File dihapus dan transaksi terkait dibatalkan (karena diupload hari ini).', deletedFromDb: true });
+      } else {
+        res.json({ message: 'File dihapus dari sistem, namun transaksi tetap tersimpan (karena diupload di hari sebelumnya).', deletedFromDb: false });
+      }
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.get('/trash-files', (req, res) => {
+    try {
+      if (!fs.existsSync(inputTrashDir)) return res.json([]);
+      const files = fs.readdirSync(inputTrashDir).filter(f => /\.xlsx?$/i.test(f)).map(f => {
+        const stat = fs.statSync(path.join(inputTrashDir, f));
+        return {
+          filename: f,
+          size: stat.size,
+          modified: stat.mtime
+        };
+      });
+      res.json(files);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.post('/restore-trash/:filename', (req, res) => {
+    try {
+      const fname = decodeURIComponent(req.params.filename);
+      const trashPath = path.join(inputTrashDir, fname);
+      const inputPath = path.join(inputDir, fname);
+      
+      if (!fs.existsSync(trashPath)) {
+        return res.status(404).json({ error: 'File tidak ditemukan di tempat sampah' });
+      }
+      
+      if (!fs.existsSync(inputDir)) {
+        fs.mkdirSync(inputDir, { recursive: true });
+      }
+
+      fs.renameSync(trashPath, inputPath);
+      res.json({ message: 'File berhasil dipulihkan ke folder input' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   router.get('/input-files', (req, res) => {
     try {
@@ -78,6 +154,127 @@ module.exports = function(db) {
       res.download(filePath, fname);
     } catch (err) {
       res.status(500).send('Error downloading file: ' + err.message);
+    }
+  });
+
+  router.get('/download-pdf/:filename', async (req, res) => {
+    try {
+      const PdfPrinter = require('pdfmake/build/pdfmake');
+      const pdfFonts = require('pdfmake/build/vfs_fonts');
+      const XLSX = require('xlsx');
+      const fname = decodeURIComponent(req.params.filename);
+      
+      let filePath = path.join(outputDir, fname);
+      if (!fs.existsSync(filePath)) {
+        filePath = path.join(sampleOutputDir, fname);
+      }
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).send('File tidak ditemukan');
+      }
+
+      // Read Excel file
+      const workbook = XLSX.readFile(filePath);
+      const content = [];
+
+      for (let si = 0; si < workbook.SheetNames.length; si++) {
+        const sheetName = workbook.SheetNames[si];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+        if (si > 0) content.push({ text: '', pageBreak: 'before' });
+
+        content.push({
+          text: sheetName,
+          fontSize: 11,
+          bold: true,
+          color: '#1e3a8a',
+          margin: [0, 0, 0, 6]
+        });
+
+        if (rows.length === 0) {
+          content.push({ text: '(Tidak ada data)', italics: true, color: '#888', margin: [0, 0, 0, 10] });
+          continue;
+        }
+
+        const maxCols = rows.reduce((max, row) => Math.max(max, row.length), 0);
+        if (maxCols === 0) continue;
+
+        const tableBody = rows.map((row, ri) => {
+          const cells = [];
+          for (let ci = 0; ci < maxCols; ci++) {
+            const cell = row[ci];
+            let displayText = '';
+            if (cell !== null && cell !== undefined && cell !== '') {
+              if (typeof cell === 'number') {
+                displayText = Number.isInteger(cell) ? 
+                  new Intl.NumberFormat('id-ID').format(cell) :
+                  new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cell);
+              } else {
+                displayText = String(cell);
+              }
+            }
+            const isHeader = ri === 0;
+            cells.push({
+              text: displayText,
+              fontSize: 6.5,
+              bold: isHeader,
+              fillColor: isHeader ? '#1e40af' : (ri % 2 === 0 ? '#f0f4ff' : '#ffffff'),
+              color: isHeader ? '#ffffff' : '#111827',
+              margin: [2, 2, 2, 2],
+            });
+          }
+          return cells;
+        });
+
+        content.push({
+          table: {
+            headerRows: 1,
+            widths: Array(maxCols).fill('*'),
+            body: tableBody,
+          },
+          layout: {
+            hLineWidth: (i) => 0.5,
+            vLineWidth: () => 0,
+            hLineColor: () => '#d1d5db',
+            paddingLeft: () => 3,
+            paddingRight: () => 3,
+            paddingTop: () => 2,
+            paddingBottom: () => 2,
+          },
+          margin: [0, 0, 0, 16],
+        });
+      }
+
+      // Use pdfmake 0.2.x browser-compatible API with built-in fonts
+      PdfPrinter.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
+
+      const docDef = {
+        content,
+        pageSize: 'A3',
+        pageOrientation: 'landscape',
+        pageMargins: [20, 30, 20, 30],
+        defaultStyle: { fontSize: 7 },
+        footer: (currentPage, pageCount) => ({
+          text: `PERUMDAM Tirta Seruyan  |  ${fname.replace('.xlsx', '')}  |  Halaman ${currentPage} dari ${pageCount}`,
+          alignment: 'center', fontSize: 6, color: '#6b7280', margin: [0, 5, 0, 0]
+        }),
+        info: {
+          title: fname.replace('.xlsx', ''),
+          author: 'PERUMDAM Tirta Seruyan',
+        }
+      };
+
+      const pdfName = fname.replace(/\.xlsx?$/i, '.pdf');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${pdfName}"`);
+
+      const pdfDocGenerator = PdfPrinter.createPdf(docDef);
+      pdfDocGenerator.getBuffer((buffer) => {
+        res.end(buffer);
+      });
+
+    } catch (err) {
+      res.status(500).send('Error generating PDF: ' + err.message);
     }
   });
 

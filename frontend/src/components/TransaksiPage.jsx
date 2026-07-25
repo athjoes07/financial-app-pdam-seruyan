@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { getAkun, getTransaksi, createTransaksi, deleteTransaksi } from '../api'
 
-export default function TransaksiPage() {
+export default function TransaksiPage({ initialSearch = '' }) {
   const [akun, setAkun] = useState([])
   const [transaksi, setTransaksi] = useState([])
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(initialSearch)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
 
@@ -71,11 +71,11 @@ export default function TransaksiPage() {
     loadTransaksi()
   }
 
-  const filteredTransaksi = transaksi.filter(t =>
-    t.deskripsi.toLowerCase().includes(search.toLowerCase()) ||
-    t.tanggal.includes(search) ||
-    t.jurnal?.some(j => j.akun_nama?.toLowerCase().includes(search.toLowerCase()))
-  )
+  const filteredTransaksi = Array.isArray(transaksi) ? transaksi.filter(t =>
+    String(t.deskripsi || '').toLowerCase().includes(String(search || '').toLowerCase()) ||
+    String(t.tanggal || '').includes(search || '') ||
+    (Array.isArray(t.jurnal) && t.jurnal.some(j => String(j.akun_nama || '').toLowerCase().includes(String(search || '').toLowerCase())))
+  ) : []
 
   const formatRupiah = (num) => {
     return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(num)

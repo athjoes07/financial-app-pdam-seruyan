@@ -150,7 +150,7 @@ function generateFinancialStatements(db, outputPath) {
   const admSheet = XLSX.utils.aoa_to_sheet(admData);
   XLSX.utils.book_append_sheet(wb, admSheet, 'P-10. Beban Umum & Adm');
 
-  XLSX.writeFile(wb, outputPath);
+  XLSX.writeFile(wb, outputPath, { compression: true, bookType: 'xlsx' });
   return outputPath;
 }
 

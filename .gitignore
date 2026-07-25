@@ -8,3 +8,9 @@ service-account-key.json
 excel_dump.txt
 
 .claude/
+
+# Input/Output Excel files (tidak perlu di-track git)
+input/
+output-app/
+backend/input-trash/
+output/

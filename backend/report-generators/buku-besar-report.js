@@ -55,7 +55,7 @@ function generateBukuBesar(db, outputPath) {
     XLSX.utils.book_append_sheet(wb, sheet, a.kode);
   }
 
-  XLSX.writeFile(wb, outputPath);
+  XLSX.writeFile(wb, outputPath, { compression: true, bookType: 'xlsx' });
   return outputPath;
 }
 

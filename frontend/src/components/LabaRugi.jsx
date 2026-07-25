@@ -3,8 +3,21 @@ import { getLabaRugi } from '../api'
 
 export default function LabaRugi() {
   const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
 
-  useEffect(() => { getLabaRugi().then(setData).catch(() => {}) }, [])
+  useEffect(() => { 
+    getLabaRugi()
+      .then(setData)
+      .catch((err) => setError(err.message)) 
+  }, [])
+
+  if (error) return (
+    <div className="page">
+      <div className="alert alert-danger" style={{ margin: '2rem' }}>
+        <strong>Gagal Memuat Laba Rugi:</strong> {error}
+      </div>
+    </div>
+  )
 
   if (!data) return (
     <div className="loading-state">

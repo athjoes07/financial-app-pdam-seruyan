@@ -67,7 +67,7 @@ function generateAllReports(db, outputDir) {
     }
     
     const kompilasiPath = path.join(outputDir, 'Kompilasi Seluruh Laporan 2026.xlsx');
-    XLSX.writeFile(combinedWb, kompilasiPath);
+    XLSX.writeFile(combinedWb, kompilasiPath, { compression: true, bookType: 'xlsx' });
     results.push({ file: 'Kompilasi Seluruh Laporan 2026.xlsx', status: 'OK' });
   } catch (e) {
     results.push({ file: 'Kompilasi Seluruh Laporan 2026.xlsx', status: 'ERROR', error: e.message });

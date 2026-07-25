@@ -3,8 +3,21 @@ import { getNeraca } from '../api'
 
 export default function Neraca() {
   const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
 
-  useEffect(() => { getNeraca().then(setData).catch(() => {}) }, [])
+  useEffect(() => { 
+    getNeraca()
+      .then(setData)
+      .catch((err) => setError(err.message)) 
+  }, [])
+
+  if (error) return (
+    <div className="page">
+      <div className="alert alert-danger" style={{ margin: '2rem' }}>
+        <strong>Gagal Memuat Neraca:</strong> {error}
+      </div>
+    </div>
+  )
 
   if (!data) return (
     <div className="loading-state">

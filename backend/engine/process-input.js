@@ -36,7 +36,7 @@ function processInputFiles(db, inputDir) {
               { kode: '13.01.00', debit: totalHA + totalAdm, kredit: 0 },
               { kode: '81.01.10', debit: 0, kredit: totalHA },
               { kode: '81.01.20', debit: 0, kredit: totalAdm },
-            ]);
+            ], file);
             results.transactions.push({ id: txId, desc, total: totalHA + totalAdm });
           }
 
@@ -45,7 +45,7 @@ function processInputFiles(db, inputDir) {
             const txId = createTx(db, tgl, desc, [
               { kode: '13.01.40', debit: totalDM, kredit: 0 },
               { kode: '81.01.20', debit: 0, kredit: totalDM },
-            ]);
+            ], file);
             results.transactions.push({ id: txId, desc, total: totalDM });
           }
         }
@@ -67,12 +67,12 @@ function processInputFiles(db, inputDir) {
               { kode: '11.01.00', debit: parsed.total_terima || total + parsed.total_denda, kredit: 0 },
               { kode: '13.01.00', debit: 0, kredit: total },
               { kode: '81.02.50', debit: 0, kredit: parsed.total_denda },
-            ]);
+            ], file);
           } else {
             txId = createTx(db, tgl, desc, [
               { kode: '11.01.00', debit: total, kredit: 0 },
               { kode: '13.01.00', debit: 0, kredit: total },
-            ]);
+            ], file);
           }
           results.transactions.push({ id: txId, desc, total: parsed.total_terima || total });
         }
@@ -85,8 +85,9 @@ function processInputFiles(db, inputDir) {
   return results;
 }
 
-function createTx(db, tanggal, deskripsi, entries) {
-  db.run('INSERT INTO transaksi (tanggal, deskripsi) VALUES (?, ?)', [tanggal, deskripsi]);
+function createTx(db, tanggal, deskripsi, entries, sumber = '') {
+  if (!entries || entries.length === 0) return null;
+  db.run('INSERT INTO transaksi (tanggal, deskripsi, sumber) VALUES (?, ?, ?)', [tanggal, deskripsi, sumber]);
   const result = db.queryOne('SELECT MAX(id) as id FROM transaksi');
   const tId = result.id;
 

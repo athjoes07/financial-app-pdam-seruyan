@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export default function ProcessPage() {
   const [loading, setLoading] = useState(false)
@@ -7,16 +8,30 @@ export default function ProcessPage() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [uploadStatus, setUploadStatus] = useState('')
+  const [viewMode, setViewMode] = useState('input')
+  const [trashFiles, setTrashFiles] = useState([])
+  const [downloadFormat, setDownloadFormat] = useState('xls')
 
   useEffect(() => {
     fetchFileList()
+    fetchTrashList()
   }, [])
+
+  async function fetchTrashList() {
+    try {
+      const res = await fetch(`${API_URL}/api/process/trash-files`)
+      const data = await res.json()
+      if (Array.isArray(data)) setTrashFiles(data)
+    } catch (err) {
+      console.error('Error fetching trash list:', err)
+    }
+  }
 
   async function fetchFileList() {
     try {
       const [resIn, resOut] = await Promise.all([
-        fetch('/api/process/input-files'),
-        fetch('/api/process/output-files')
+        fetch(`${API_URL}/api/process/input-files`),
+        fetch(`${API_URL}/api/process/output-files`)
       ])
       const dataIn = await resIn.json()
       const dataOut = await resOut.json()
@@ -36,7 +51,7 @@ export default function ProcessPage() {
     reader.onload = async () => {
       const base64 = reader.result
       try {
-        const res = await fetch('/api/process/upload-input', {
+        const res = await fetch(`${API_URL}/api/process/upload-input`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename: file.name, contentBase64: base64 })
@@ -60,7 +75,7 @@ export default function ProcessPage() {
     setError('')
     setResult(null)
     try {
-      const res = await fetch('/api/process/run-all', { method: 'POST' })
+      const res = await fetch(`${API_URL}/api/process/run-all`, { method: 'POST' })
       const data = await res.json()
       setResult(data)
       fetchFileList()
@@ -70,25 +85,95 @@ export default function ProcessPage() {
     setLoading(false)
   }
 
+  async function handleDeleteInput(filename) {
+    if (!window.confirm(`Yakin ingin menghapus ${filename}?`)) return
+    try {
+      const res = await fetch(`${API_URL}/api/process/delete-input/${encodeURIComponent(filename)}`, { method: 'DELETE' })
+      const data = await res.json()
+      window.alert(data.message)
+      fetchFileList()
+      fetchTrashList()
+    } catch (err) {
+      window.alert('Gagal menghapus file: ' + err.message)
+    }
+  }
+
+  async function handleRestoreTrash(filename) {
+    if (!window.confirm(`Yakin ingin memulihkan ${filename}?`)) return
+    try {
+      const res = await fetch(`${API_URL}/api/process/restore-trash/${encodeURIComponent(filename)}`, { method: 'POST' })
+      const data = await res.json()
+      window.alert(data.message)
+      fetchFileList()
+      fetchTrashList()
+    } catch (err) {
+      window.alert('Gagal memulihkan file: ' + err.message)
+    }
+  }
+
+  async function handleDownloadOutput(filename, format) {
+    const endpoint = format === 'pdf'
+      ? `${API_URL}/api/process/download-pdf/${encodeURIComponent(filename)}`
+      : `${API_URL}/api/process/download/${encodeURIComponent(filename)}`
+    
+    const downloadName = format === 'pdf'
+      ? filename.replace(/\.xlsx?$/i, '.pdf')
+      : filename
+
+    try {
+      const res = await fetch(endpoint)
+      if (!res.ok) {
+        const text = await res.text()
+        window.alert('Gagal download: ' + text)
+        return
+      }
+      const buffer = await res.arrayBuffer()
+      const mimeType = format === 'pdf' 
+        ? 'application/pdf' 
+        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      const blob = new Blob([buffer], { type: mimeType })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = downloadName
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      window.alert('Gagal download: ' + err.message)
+    }
+  }
+
   return (
     <div className="page">
       {/* Page Header */}
       <div className="page-header">
-        <div className="page-title-row">
+        <div className="page-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h1 className="page-title">Proses ETL</h1>
             <p className="page-subtitle">Pengolahan input → generate 5 laporan output</p>
           </div>
-          <button
-            className="btn btn-primary"
-            onClick={handleProcess}
-            disabled={loading}
-          >
-            {loading ? '⚡ Memproses...' : '🚀 Proses Sekarang'}
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <button
+              className="btn btn-primary"
+              onClick={handleProcess}
+              disabled={loading || viewMode === 'trash'}
+            >
+              {loading ? '⚡ Memproses...' : '🚀 Proses Sekarang'}
+            </button>
+            <button 
+              className="btn btn-secondary btn-sm" 
+              onClick={() => setViewMode(viewMode === 'input' ? 'trash' : 'input')}
+            >
+              {viewMode === 'input' ? '🗑️ Lihat Tempat Sampah' : '📁 Lihat File Aktif'}
+            </button>
+          </div>
         </div>
       </div>
 
+      {viewMode === 'input' && (
+        <>
       {/* Pipeline Visualization */}
       <div className="card">
         <div className="card-header">
@@ -137,25 +222,35 @@ export default function ProcessPage() {
                 <thead>
                   <tr>
                     <th>Nama File</th>
+                    <th>Tgl Upload</th>
                     <th className="text-right">Ukuran</th>
-                    <th className="text-center" style={{ width: '80px' }}>Aksi</th>
+                    <th className="text-center" style={{ width: '120px' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {inputFiles.map((f, i) => (
                     <tr key={i}>
                       <td>📄 {f.filename}</td>
+                      <td style={{ fontSize: '0.8rem' }}>{new Date(f.modified).toLocaleDateString('id-ID')}</td>
                       <td className="text-right font-mono" style={{ fontSize: '0.8rem' }}>{(f.size / 1024).toFixed(1)} KB</td>
-                      <td className="text-center">
+                      <td className="text-center" style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
                         <a 
-                          href={f.downloadUrl || `/api/process/download-input/${encodeURIComponent(f.filename)}`} 
+                          href={f.downloadUrl || `${API_URL}/api/process/download-input/${encodeURIComponent(f.filename)}`} 
                           download 
                           className="btn btn-secondary btn-sm"
                           style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                          title="Unduh File Asli"
+                          title="Unduh File"
                         >
-                          ⬇️ Unduh
+                          ⬇️
                         </a>
+                        <button 
+                          onClick={() => handleDeleteInput(f.filename)}
+                          className="btn btn-danger btn-sm"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                          title="Hapus File"
+                        >
+                          🗑️
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -174,6 +269,22 @@ export default function ProcessPage() {
         <div className="card">
           <div className="card-header">
             <h3 className="card-title">📥 Output (5 Laporan)</h3>
+            <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--bg-subtle)', padding: '0.2rem', borderRadius: '0.5rem' }}>
+              <button
+                onClick={() => setDownloadFormat('xls')}
+                className={`btn btn-sm ${downloadFormat === 'xls' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+              >
+                📊 XLS
+              </button>
+              <button
+                onClick={() => setDownloadFormat('pdf')}
+                className={`btn btn-sm ${downloadFormat === 'pdf' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+              >
+                📄 PDF
+              </button>
+            </div>
           </div>
           {[
             'Journal 2026.xlsx',
@@ -183,24 +294,26 @@ export default function ProcessPage() {
             'AUDIT_TRAIL.xlsx'
           ].map((name, i) => {
             const existing = outputFiles.find(of => of.filename === name)
+            const xlsUrl = `${API_URL}/api/process/download/${encodeURIComponent(name)}`;
+            const pdfUrl = `${API_URL}/api/process/download-pdf/${encodeURIComponent(name)}`;
+            const downloadName = downloadFormat === 'pdf' ? name.replace(/\.xlsx?$/i, '.pdf') : name;
             return (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.625rem 0', borderBottom: i < 4 ? '1px solid var(--border-subtle)' : 'none' }}>
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>{name}</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>{name.replace('.xlsx', '')}</div>
                   {existing && (
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      {(existing.size / 1024).toFixed(1)} KB
+                      {(existing.size / 1024).toFixed(1)} KB · Diperbarui: {new Date(existing.modified).toLocaleDateString('id-ID')}
                     </div>
                   )}
                 </div>
-                <a
-                  href={`/api/process/download/${encodeURIComponent(name)}`}
-                  download
+                <button
+                  onClick={() => handleDownloadOutput(name, downloadFormat)}
                   className="btn btn-primary btn-sm"
-                  style={{ textDecoration: 'none' }}
+                  style={{ minWidth: '80px', textAlign: 'center' }}
                 >
-                  ⬇️
-                </a>
+                  ⬇️ {downloadFormat.toUpperCase()}
+                </button>
               </div>
             )
           })}
@@ -225,6 +338,56 @@ export default function ProcessPage() {
               </span>
             </div>
           ))}
+        </div>
+      )}
+        </>
+      )}
+
+      {viewMode === 'trash' && (
+        <div className="card" style={{ marginTop: '1rem' }}>
+          <div className="card-header">
+            <h3 className="card-title">🗑️ Tempat Sampah ({trashFiles.length})</h3>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Daftar file input yang telah dihapus.
+            </p>
+          </div>
+          {trashFiles.length > 0 ? (
+            <div className="table-wrap">
+              <table className="table-modern">
+                <thead>
+                  <tr>
+                    <th>Nama File</th>
+                    <th>Waktu Dihapus</th>
+                    <th className="text-right">Ukuran</th>
+                    <th className="text-center" style={{ width: '120px' }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trashFiles.map((f, i) => (
+                    <tr key={i}>
+                      <td>📄 {f.filename}</td>
+                      <td style={{ fontSize: '0.8rem' }}>{new Date(f.modified).toLocaleString('id-ID')}</td>
+                      <td className="text-right font-mono" style={{ fontSize: '0.8rem' }}>{(f.size / 1024).toFixed(1)} KB</td>
+                      <td className="text-center">
+                        <button 
+                          onClick={() => handleRestoreTrash(f.filename)}
+                          className="btn btn-primary btn-sm"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                        >
+                          ♻️ Pulihkan
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-state-icon">🗑️</div>
+              <div className="empty-state-text">Tempat sampah kosong</div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -110,8 +110,19 @@ body {
   z-index: 100;
 }
 
+.topbar-search-container {
+  position: relative;
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .topbar-search-container {
+    display: block;
+  }
+}
+
 .topbar-search {
-  display: none; /* hidden on mobile to save space */
+  display: flex;
   align-items: center;
   background: var(--bg-app);
   border: 1px solid var(--border);
@@ -121,6 +132,50 @@ body {
   gap: 0.5rem;
   color: var(--text-muted);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+  padding: 0.5rem;
+}
+
+.search-dropdown-section {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 0.5rem 0.75rem 0.25rem;
+}
+
+.search-dropdown-item {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.search-dropdown-item:hover {
+  background: var(--bg-app);
+  color: var(--primary);
+}
+
+.search-dropdown-item .icon {
+  font-size: 1.1rem;
 }
 
 .topbar-search:focus-within {
@@ -1326,6 +1381,118 @@ html {
   border-color: var(--primary);
   color: var(--primary);
   transform: translateY(-1px);
+}
+
+.toggle-btn:hover, .notif-btn:hover {
+  background: var(--bg-app);
+  color: var(--primary);
+  border-color: var(--border-hover);
+}
+
+/* --- Notifications --- */
+.notif-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.notif-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: var(--danger);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-surface);
+}
+
+.notif-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  width: 320px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  overflow: hidden;
+  animation: dropdown-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.notif-dropdown-header {
+  padding: 1rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  background: var(--bg-app);
+}
+
+.notif-dropdown-list {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.notif-item {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.notif-item:last-child {
+  border-bottom: none;
+}
+
+.notif-item:hover {
+  background: var(--bg-app);
+}
+
+.notif-item.unread {
+  background: rgba(14, 165, 233, 0.05);
+}
+
+.notif-item.unread:hover {
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.notif-text {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+
+.notif-item.unread .notif-text {
+  font-weight: 600;
+}
+
+.notif-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .dash-notif-dot {

@@ -51,7 +51,7 @@ function generateNeracaLajur(db, outputPath) {
   sheet['!cols'] = [{ wch: 35 }, { wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
   XLSX.utils.book_append_sheet(wb, sheet, 'NERCA LAJUR MEI');
 
-  XLSX.writeFile(wb, outputPath);
+  XLSX.writeFile(wb, outputPath, { compression: true, bookType: 'xlsx' });
   return outputPath;
 }
 

@@ -2,9 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const XLSX = require('xlsx');
 
-function createTx(db, tanggal, deskripsi, entries) {
+function createTx(db, tanggal, deskripsi, entries, sumber = '') {
   if (!entries || entries.length === 0) return null;
-  db.run('INSERT INTO transaksi (tanggal, deskripsi) VALUES (?, ?)', [tanggal, deskripsi]);
+  db.run('INSERT INTO transaksi (tanggal, deskripsi, sumber) VALUES (?, ?, ?)', [tanggal, deskripsi, sumber]);
   const result = db.queryOne('SELECT MAX(id) as id FROM transaksi');
   const tId = result.id;
   for (const e of entries) {
@@ -17,7 +17,7 @@ function createTx(db, tanggal, deskripsi, entries) {
   return tId;
 }
 
-function parseDaftarVoucher(db, filePath) {
+function parseDaftarVoucher(db, filePath, sumberFile) {
   const results = [];
   const wb = XLSX.readFile(filePath);
   const sheet = wb.Sheets['DVUD'];
@@ -42,7 +42,7 @@ function parseDaftarVoucher(db, filePath) {
         const txId = createTx(db, tgl, 'Voucher: ' + uraian, [
           { kode: kodeDebet, debit: jumlahDebet, kredit: 0 },
           { kode: kodeKredit, debit: 0, kredit: jumlahKredit }
-        ]);
+        ], sumberFile);
         if (txId) results.push({ id: txId, desc: uraian, total: jumlahDebet });
       }
     }
@@ -50,7 +50,7 @@ function parseDaftarVoucher(db, filePath) {
   return results;
 }
 
-function parseJurnalBayar(db, filePath) {
+function parseJurnalBayar(db, filePath, sumberFile) {
   const results = [];
   const wb = XLSX.readFile(filePath);
   const sheet = wb.Sheets['JBK'];
@@ -70,7 +70,7 @@ function parseJurnalBayar(db, filePath) {
       const entries = [{ kode: '11.01.00', debit: 0, kredit: kas }];
       if (utangUsaha > 0) entries.push({ kode: '50.01.00', debit: utangUsaha, kredit: 0 });
       if (utangNonUsaha > 0) entries.push({ kode: '50.02.00', debit: utangNonUsaha, kredit: 0 });
-      const txId = createTx(db, tgl, 'Bayar: ' + uraian, entries);
+      const txId = createTx(db, tgl, 'Bayar: ' + uraian, entries, sumberFile);
       if (txId) results.push({ id: txId, desc: uraian, total: kas });
     }
   }
@@ -108,7 +108,7 @@ function parseJurnalPembalik(db, filePath) {
         if (akun) entries.push({ kode: akun.kode, debit: 0, kredit: kredit });
       }
       if (entries.length >= 2 && i % 3 === 0) {
-        const txId = createTx(db, tgl, 'Pembalik: ' + uraianDebet, entries);
+        const txId = createTx(db, tgl, 'Pembalik: ' + uraianDebet, entries, sumberFile);
         if (txId) results.push({ id: txId, desc: uraianDebet, total: debet });
         entries = [];
       }
@@ -117,7 +117,7 @@ function parseJurnalPembalik(db, filePath) {
   return results;
 }
 
-function parseAksesories(db, filePath) {
+function parseAksesories(db, filePath, sumberFile) {
   const wb = XLSX.readFile(filePath);
   let totalNilai = 0;
   const skipLabels = ['jumlah', 'jml', 'total', 'sub total'];
@@ -170,21 +170,21 @@ function bulkImport(db, inputDir) {
     const filePath = path.join(inputDir, file);
     try {
       if (file.toLowerCase().includes('daftar voucher')) {
-        const txs = parseDaftarVoucher(db, filePath);
+        const txs = parseDaftarVoucher(db, filePath, file);
         results.files_processed.push('DaftarVoucher: ' + file + ' (' + txs.length + ' transaksi)');
         results.transactions.push(...txs);
       } else if (file.toLowerCase().includes('jurnal bayar')) {
-        const txs = parseJurnalBayar(db, filePath);
+        const txs = parseJurnalBayar(db, filePath, file);
         results.files_processed.push('JurnalBayar: ' + file + ' (' + txs.length + ' transaksi)');
         results.transactions.push(...txs);
       } else if (file.toLowerCase().includes('aksesories')) {
-        const total = parseAksesories(db, filePath);
+        const total = parseAksesories(db, filePath, file);
         results.files_processed.push('Aksesories: ' + file + ' (nilai Rp ' + total.toLocaleString() + ')');
         if (total > 0) {
           const txId = createTx(db, '2026-01-01', 'Persediaan Bahan Instalasi (Asesoris & Water Meter)', [
             { kode: '15.03.00', debit: total, kredit: 0 },
             { kode: '71.01.00', debit: 0, kredit: total }
-          ]);
+          ], file);
           if (txId) results.transactions.push({ id: txId, desc: 'Persediaan Bahan Instalasi', total });
         }
       } else if (file.toLowerCase().includes('persediaan bahan kimia')) {
@@ -194,7 +194,7 @@ function bulkImport(db, inputDir) {
           const txId = createTx(db, '2026-01-01', 'Persediaan Bahan Kimia & BBM', [
             { kode: '15.01.00', debit: data.total, kredit: 0 },
             { kode: '71.01.00', debit: 0, kredit: data.total }
-          ]);
+          ], file);
           if (txId) results.transactions.push({ id: txId, desc: 'Persediaan Bahan Kimia', total: data.total });
         }
       } else if (file.toLowerCase().includes('realisasi anggaran')) {

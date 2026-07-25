@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export default function FirebasePage() {
   const [syncResult, setSyncResult] = useState(null)
@@ -9,7 +10,7 @@ export default function FirebasePage() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/process/sync-firestore', { method: 'POST' })
+      const res = await fetch(`${API_URL}/api/process/sync-firestore`, { method: 'POST' })
       const data = await res.json()
       setSyncResult(data)
     } catch (err) {

@@ -66,7 +66,7 @@ function generateAuditTrail(db, outputPath) {
   ];
 
   XLSX.utils.book_append_sheet(wb, sheet, 'AUDIT LOG');
-  XLSX.writeFile(wb, outputPath);
+  XLSX.writeFile(wb, outputPath, { compression: true, bookType: 'xlsx' });
   return outputPath;
 }
 
