@@ -19,67 +19,68 @@ export default function FirebasePage() {
   }
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <div>
-          <h2 style={{ margin: 0, color: '#1a237e', fontFamily: 'Outfit, sans-serif' }}>Firebase Cloud Firestore Sync</h2>
-          <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.9rem' }}>Sinkronisasi Database SQLite Lokal ke Cloud Storage Firebase</p>
+    <div className="page">
+      {/* Page Header */}
+      <div className="page-header">
+        <div className="page-title-row">
+          <div>
+            <h1 className="page-title">Cloud Sync</h1>
+            <p className="page-subtitle">Sinkronisasi SQLite → Firebase Firestore</p>
+          </div>
+          <button className="btn btn-primary" onClick={handleSync} disabled={loading}>
+            {loading ? '⏳ Menyinkronkan...' : '☁️ Sync Sekarang'}
+          </button>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={handleSync}
-          disabled={loading}
-          style={{ padding: '0.85rem 2rem', fontSize: '1rem', fontWeight: 700 }}
-        >
-          {loading ? '⚡ Menyinkronkan ke Cloud...' : '☁️ SINKRONKAN KE FIRESTORE'}
-        </button>
       </div>
 
       {/* Cloud Status Card */}
-      <div className="card-modern" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)', color: '#fff' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="balance-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <div style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>PROJECT ID</div>
-            <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.35rem', fontWeight: 800, marginTop: '0.2rem' }}>financial-app-pdam-seruyan</div>
-            <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>Status Integrasi: Firestore Service Active</div>
+            <div className="balance-card-label">Project ID</div>
+            <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 700 }}>financial-app-pdam-seruyan</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>Firestore Service Active</div>
           </div>
-          <div className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.3)', padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-            ● Firestore Connected
-          </div>
+          <span className="status-pill success">● Firestore Connected</span>
         </div>
       </div>
 
-      {error && <div className="error-msg">{error}</div>}
+      {error && <div className="alert alert-danger">{error}</div>}
 
+      {/* Sync Results */}
       {syncResult && (
-        <div className="card-modern">
-          <h3 className="card-title">📊 Hasil Sinkronisasi Real-Time</h3>
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">📊 Hasil Sinkronisasi</h3>
+            {syncResult.success !== false && <span className="status-pill success">Berhasil</span>}
+          </div>
+
           {syncResult.success === false ? (
-            <p className="text-danger font-bold">{syncResult.error || 'Gagal sinkronisasi ke cloud'}</p>
+            <div className="alert alert-danger">
+              {syncResult.error || 'Gagal sinkronisasi ke cloud'}
+            </div>
           ) : (
-            <div className="grid-3">
-              <div style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '12px', textAlign: 'center', border: '1px solid #bfdbfe' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1d4ed8' }}>KOLEKSI AKUN</div>
-                <div className="font-mono" style={{ fontSize: '1.85rem', fontWeight: 800, color: '#1e40af', marginTop: '0.25rem' }}>
+            <div className="summary-cards" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              <div className="summary-card" style={{ background: 'var(--info-bg)', border: '1px solid var(--info-border)', textAlign: 'center' }}>
+                <div className="summary-card-label">Akun</div>
+                <div className="summary-card-value" style={{ color: 'var(--info)', fontSize: '1.5rem' }}>
                   {syncResult.results?.akun || 0}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#3b82f6', marginTop: '0.25rem' }}>Dokumen Tersinkron</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--info)' }}>Dokumen</div>
               </div>
-
-              <div style={{ background: '#ecfdf5', padding: '1.25rem', borderRadius: '12px', textAlign: 'center', border: '1px solid #a7f3d0' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857' }}>KOLEKSI TRANSAKSI</div>
-                <div className="font-mono" style={{ fontSize: '1.85rem', fontWeight: 800, color: '#065f46', marginTop: '0.25rem' }}>
+              <div className="summary-card" style={{ background: 'var(--success-bg)', border: '1px solid var(--success-border)', textAlign: 'center' }}>
+                <div className="summary-card-label">Transaksi</div>
+                <div className="summary-card-value success" style={{ fontSize: '1.5rem' }}>
                   {syncResult.results?.transaksi || 0}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '0.25rem' }}>Dokumen Tersinkron</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--success)' }}>Dokumen</div>
               </div>
-
-              <div style={{ background: '#f5f3ff', padding: '1.25rem', borderRadius: '12px', textAlign: 'center', border: '1px solid #ddd6fe' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6d28d9' }}>KOLEKSI JURNAL</div>
-                <div className="font-mono" style={{ fontSize: '1.85rem', fontWeight: 800, color: '#5b21b6', marginTop: '0.25rem' }}>
+              <div className="summary-card" style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', textAlign: 'center' }}>
+                <div className="summary-card-label">Jurnal</div>
+                <div className="summary-card-value" style={{ color: '#7c3aed', fontSize: '1.5rem' }}>
                   {syncResult.results?.jurnal || 0}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#8b5cf6', marginTop: '0.25rem' }}>Dokumen Tersinkron</div>
+                <div style={{ fontSize: '0.75rem', color: '#7c3aed' }}>Dokumen</div>
               </div>
             </div>
           )}
@@ -87,14 +88,18 @@ export default function FirebasePage() {
       )}
 
       {/* Setup Guide */}
-      <div className="card-modern">
-        <h3 className="card-title">📖 Panduan Setup Credential Firestore Admin SDK</h3>
-        <ol style={{ marginLeft: '1.25rem', lineHeight: '2.2', color: '#334155', fontSize: '0.92rem' }}>
-          <li>Buka Firebase Console: <a href="https://console.firebase.google.com/project/financial-app-pdam-seruyan/settings/serviceaccounts/adminsdk" target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', fontWeight: 700 }}>Firebase Service Accounts ➔</a></li>
-          <li>Klik tombol <strong>Generate new private key</strong> untuk mengunduh kredensial JSON.</li>
-          <li>Simpan file kredensial sebagai <code>backend/service-account-key.json</code>.</li>
-          <li>Klik tombol <strong>☁️ SINKRONKAN KE FIRESTORE</strong> di atas untuk mencadangkan database.</li>
-        </ol>
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">📖 Panduan Setup</h3>
+        </div>
+        <div style={{ lineHeight: '2', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
+          <ol style={{ marginLeft: '1.25rem' }}>
+            <li>Buka Firebase Console → Service Accounts</li>
+            <li>Klik <strong>Generate new private key</strong> untuk mengunduh credential JSON</li>
+            <li>Simpan sebagai <code style={{ background: 'var(--bg-surface-hover)', padding: '0.125rem 0.375rem', borderRadius: '4px', fontSize: '0.85rem' }}>backend/service-account-key.json</code></li>
+            <li>Klik tombol <strong>Sync Sekarang</strong> di atas</li>
+          </ol>
+        </div>
       </div>
     </div>
   )

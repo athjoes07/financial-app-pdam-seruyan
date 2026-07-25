@@ -4,127 +4,129 @@ import { getLabaRugi } from '../api'
 export default function LabaRugi() {
   const [data, setData] = useState(null)
 
-  useEffect(() => { getLabaRugi().then(setData) }, [])
+  useEffect(() => { getLabaRugi().then(setData).catch(() => {}) }, [])
 
   if (!data) return (
-    <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
-      <div style={{ fontSize: '2rem' }}>⚡</div>
-      <p style={{ marginTop: '0.5rem', fontWeight: 600 }}>Memuat Laporan Laba Rugi...</p>
+    <div className="loading-state">
+      <div className="loading-spinner"></div>
+      <p>Memuat laporan laba rugi...</p>
     </div>
   )
 
   const profitMargin = data.totalPendapatan > 0 ? ((data.labaBersih / data.totalPendapatan) * 100).toFixed(1) : 0
 
+  const formatRupiah = (num) => {
+    return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(num)
+  }
+
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <div>
-          <h2 style={{ margin: 0, color: '#1a237e', fontFamily: 'Outfit, sans-serif' }}>Laporan Laba Rugi (Profit & Loss Statement)</h2>
-          <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.9rem' }}>PERUMDAM TIRTA SERUYAN • Standar Akuntansi ETAP</p>
-        </div>
-        <div style={{ background: '#f8fafc', padding: '0.5rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>PROFIT MARGIN</div>
-          <div style={{ fontSize: '1.1rem', fontWeight: 800, color: data.labaBersih >= 0 ? '#059669' : '#dc2626' }}>{profitMargin}%</div>
+    <div className="page">
+      {/* Page Header */}
+      <div className="page-header">
+        <div className="page-title-row">
+          <div>
+            <h1 className="page-title">Laba Rugi</h1>
+            <p className="page-subtitle">Laporan laba/rugi tahun berjalan</p>
+          </div>
+          <span className={`status-pill ${data.labaBersih >= 0 ? 'success' : 'danger'}`}>
+            Margin: {profitMargin}%
+          </span>
         </div>
       </div>
 
-      {/* KPI Cards Summary */}
-      <div className="grid-3" style={{ marginBottom: '1.5rem' }}>
-        <div className="card-modern" style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)', border: '1px solid #a7f3d0' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857', textTransform: 'uppercase' }}>Total Pendapatan Usaha</div>
-          <div className="font-mono" style={{ fontSize: '1.5rem', fontWeight: 800, color: '#065f46', marginTop: '0.25rem' }}>
-            Rp {data.totalPendapatan?.toLocaleString('id-ID')}
-          </div>
+      {/* KPI Summary Cards */}
+      <div className="summary-cards" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="summary-card" style={{ background: 'var(--success-bg)', border: '1px solid var(--success-border)' }}>
+          <div className="summary-card-label">Pendapatan</div>
+          <div className="summary-card-value success">Rp {formatRupiah(data.totalPendapatan)}</div>
         </div>
-
-        <div className="card-modern" style={{ background: 'linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)', border: '1px solid #fecaca' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#b91c1c', textTransform: 'uppercase' }}>Total Beban Operasional</div>
-          <div className="font-mono" style={{ fontSize: '1.5rem', fontWeight: 800, color: '#991b1b', marginTop: '0.25rem' }}>
-            Rp {data.totalBeban?.toLocaleString('id-ID')}
-          </div>
+        <div className="summary-card" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)' }}>
+          <div className="summary-card-label">Total Beban</div>
+          <div className="summary-card-value danger">Rp {formatRupiah(data.totalBeban)}</div>
         </div>
-
-        <div className="card-modern" style={{ background: data.labaBersih >= 0 ? 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)' : 'linear-gradient(135deg, #fff1f2 0%, #ffffff 100%)', border: data.labaBersih >= 0 ? '1px solid #bfdbfe' : '1px solid #fecdd3' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: data.labaBersih >= 0 ? '#1d4ed8' : '#be123c', textTransform: 'uppercase' }}>Laba / Rugi Bersih</div>
-          <div className="font-mono" style={{ fontSize: '1.5rem', fontWeight: 800, color: data.labaBersih >= 0 ? '#1e40af' : '#9f1239', marginTop: '0.25rem' }}>
-            Rp {data.labaBersih?.toLocaleString('id-ID')}
-          </div>
+        <div className="summary-card" style={{ background: data.labaBersih >= 0 ? 'var(--info-bg)' : 'var(--danger-bg)', border: `1px solid ${data.labaBersih >= 0 ? 'var(--info-border)' : 'var(--danger-border)'}` }}>
+          <div className="summary-card-label">Laba/Rugi Bersih</div>
+          <div className={`summary-card-value ${data.labaBersih >= 0 ? 'success' : 'danger'}`}>Rp {formatRupiah(data.labaBersih)}</div>
         </div>
       </div>
 
       {/* Pendapatan Table */}
-      <div className="card-modern">
-        <h3 className="card-title" style={{ color: '#047857' }}>📈 Pendapatan Usaha & Non-Usaha</h3>
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">📈 Pendapatan Usaha & Non-Usaha</h3>
+        </div>
         <div className="table-wrap">
           <table className="table-modern">
             <thead>
               <tr>
-                <th>Kode Akun</th>
-                <th>Nama Akun Perkiraan</th>
+                <th>Kode</th>
+                <th>Nama Akun</th>
                 <th className="text-right">Jumlah (Rp)</th>
               </tr>
             </thead>
             <tbody>
               {data.pendapatan.map(p => (
                 <tr key={p.kode}>
-                  <td className="font-mono font-bold" style={{ color: '#047857' }}>{p.kode}</td>
-                  <td style={{ fontWeight: 600 }}>{p.nama}</td>
-                  <td className="text-right font-mono font-bold">Rp {p.saldo.toLocaleString('id-ID')}</td>
+                  <td className="font-mono">{p.kode}</td>
+                  <td style={{ fontWeight: 500 }}>{p.nama}</td>
+                  <td className="text-right font-mono">Rp {formatRupiah(p.saldo)}</td>
                 </tr>
               ))}
-              <tr style={{ background: '#ecfdf5', fontWeight: 800 }}>
-                <td colSpan={2} style={{ color: '#065f46', fontSize: '0.95rem' }}>TOTAL PENDAPATAN</td>
-                <td className="text-right font-mono" style={{ color: '#065f46', fontSize: '1.05rem' }}>
-                  Rp {data.totalPendapatan.toLocaleString('id-ID')}
-                </td>
-              </tr>
             </tbody>
+            <tfoot>
+              <tr style={{ fontWeight: 700, background: 'var(--success-bg)' }}>
+                <td colSpan={2} style={{ color: '#065f46' }}>Total Pendapatan</td>
+                <td className="text-right font-mono" style={{ color: '#065f46' }}>Rp {formatRupiah(data.totalPendapatan)}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
 
       {/* Beban Table */}
-      <div className="card-modern">
-        <h3 className="card-title" style={{ color: '#b91c1c' }}>📉 Beban Operasional & Administrasi</h3>
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">📉 Beban Operasional & Administrasi</h3>
+        </div>
         <div className="table-wrap">
           <table className="table-modern">
             <thead>
               <tr>
-                <th>Kode Akun</th>
-                <th>Nama Akun Perkiraan</th>
+                <th>Kode</th>
+                <th>Nama Akun</th>
                 <th className="text-right">Jumlah (Rp)</th>
               </tr>
             </thead>
             <tbody>
               {data.beban.map(b => (
                 <tr key={b.kode}>
-                  <td className="font-mono font-bold" style={{ color: '#b91c1c' }}>{b.kode}</td>
-                  <td style={{ fontWeight: 600 }}>{b.nama}</td>
-                  <td className="text-right font-mono font-bold">Rp {b.saldo.toLocaleString('id-ID')}</td>
+                  <td className="font-mono">{b.kode}</td>
+                  <td style={{ fontWeight: 500 }}>{b.nama}</td>
+                  <td className="text-right font-mono">Rp {formatRupiah(b.saldo)}</td>
                 </tr>
               ))}
-              <tr style={{ background: '#fef2f2', fontWeight: 800 }}>
-                <td colSpan={2} style={{ color: '#991b1b', fontSize: '0.95rem' }}>TOTAL BEBAN OPERASIONAL</td>
-                <td className="text-right font-mono" style={{ color: '#991b1b', fontSize: '1.05rem' }}>
-                  Rp {data.totalBeban.toLocaleString('id-ID')}
-                </td>
-              </tr>
             </tbody>
+            <tfoot>
+              <tr style={{ fontWeight: 700, background: 'var(--danger-bg)' }}>
+                <td colSpan={2} style={{ color: '#991b1b' }}>Total Beban Operasional</td>
+                <td className="text-right font-mono" style={{ color: '#991b1b' }}>Rp {formatRupiah(data.totalBeban)}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
 
-      {/* Final Net Profit Banner */}
-      <div className="card-modern" style={{ background: data.labaBersih >= 0 ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: '#fff' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Laba/Rugi Bersih Banner */}
+      <div className="card" style={{ background: data.labaBersih >= 0 ? 'var(--success)' : 'var(--danger)', color: 'white', padding: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>HASIL AKHIR PERIODE</div>
-            <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: 800 }}>
-              {data.labaBersih >= 0 ? '🎉 SURPLUS / LABA BERSIH OPERASIONAL' : '⚠️ DEFISIT / RUGI BERSIH OPERASIONAL'}
+            <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.85 }}>Hasil Akhir Periode</div>
+            <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 700 }}>
+              {data.labaBersih >= 0 ? 'Laba Bersih Operasional' : 'Rugi Bersih Operasional'}
             </div>
           </div>
-          <div className="font-mono" style={{ fontSize: '1.85rem', fontWeight: 800 }}>
-            Rp {data.labaBersih.toLocaleString('id-ID')}
+          <div className="font-mono" style={{ fontSize: '1.625rem', fontWeight: 800 }}>
+            Rp {formatRupiah(data.labaBersih)}
           </div>
         </div>
       </div>
