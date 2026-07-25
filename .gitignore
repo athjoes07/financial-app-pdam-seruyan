@@ -6,3 +6,5 @@ service-account-key.json
 .env.local
 .firebase/
 excel_dump.txt
+
+.claude/

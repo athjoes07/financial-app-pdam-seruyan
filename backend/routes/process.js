@@ -20,12 +20,27 @@ module.exports = function(db) {
         return {
           filename: f,
           size: stat.size,
-          modified: stat.mtime
+          modified: stat.mtime,
+          downloadUrl: `/api/process/download-input/${encodeURIComponent(f)}`
         };
       });
       res.json(files);
     } catch (err) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.get('/download-input/:filename', (req, res) => {
+    try {
+      const fname = decodeURIComponent(req.params.filename);
+      const filePath = path.join(inputDir, fname);
+      if (fs.existsSync(filePath)) {
+        res.download(filePath);
+      } else {
+        res.status(404).send('File tidak ditemukan');
+      }
+    } catch (err) {
+      res.status(500).send('Error downloading file: ' + err.message);
     }
   });
 

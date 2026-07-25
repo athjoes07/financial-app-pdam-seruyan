@@ -138,6 +138,7 @@ export default function ProcessPage() {
                   <tr>
                     <th>Nama File</th>
                     <th className="text-right">Ukuran</th>
+                    <th className="text-center" style={{ width: '80px' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -145,6 +146,17 @@ export default function ProcessPage() {
                     <tr key={i}>
                       <td>📄 {f.filename}</td>
                       <td className="text-right font-mono" style={{ fontSize: '0.8rem' }}>{(f.size / 1024).toFixed(1)} KB</td>
+                      <td className="text-center">
+                        <a 
+                          href={f.downloadUrl || `/api/process/download-input/${encodeURIComponent(f.filename)}`} 
+                          download 
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                          title="Unduh File Asli"
+                        >
+                          ⬇️ Unduh
+                        </a>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
