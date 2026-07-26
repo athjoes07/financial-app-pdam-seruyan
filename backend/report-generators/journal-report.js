@@ -16,10 +16,14 @@ function generateJournal(db, outputPath) {
     ORDER BY t.tanggal ASC, t.id ASC
   `);
 
+  const now = new Date();
+  const waktuCetak = 'Dicetak pada: ' + now.toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'medium', timeZone: 'Asia/Jakarta' }) + ' WIB';
+
   const juData = [];
   // Header
   juData.push(['PERUSAHAAN DAERAH AIR MINUM', '', '', '', '', '']);
   juData.push(['KABUPATEN SERUYAN', '', '', '', '', '']);
+  juData.push([waktuCetak, '', '', '', '', '']);
   juData.push(['', '', '', '', '', '']);
   juData.push(['JURNAL UMUM', '', '', '', '', '']);
   juData.push(['BULAN : MEI 2026', '', '', '', '', '']);
@@ -55,6 +59,7 @@ function generateJournal(db, outputPath) {
   dvudData.push(['KABUPATEN SERUYAN', '', '', '', '', '', '', '', '', '', '']);
   dvudData.push(['DAFTAR VOUCHER UTANG YANG HARUS DIBAYAR', '', '', '', '', '', '', '', '', '', '']);
   dvudData.push(['BULAN MEI 2026', '', '', '', '', '', '', '', '', '', '']);
+  dvudData.push([waktuCetak, '', '', '', '', '', '', '', '', '', '']);
   dvudData.push(['', '', '', '', '', '', '', '', '', '', '']);
   dvudData.push(['TGL', 'NO', 'URAIAN', 'TGL BAYAR', 'CARA', 'NO.PERK', 'NAMA PERKIRAAN', 'JUMLAH(Rp)', 'NO.PERK KREDIT', 'NAMA PERKIRAAN KREDIT', 'JUMLAH(Rp)']);
 

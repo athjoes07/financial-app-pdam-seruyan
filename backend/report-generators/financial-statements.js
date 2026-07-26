@@ -25,6 +25,9 @@ function generateFinancialStatements(db, outputPath) {
     return Math.round(total * 100) / 100;
   }
 
+  const now = new Date();
+  const waktuCetak = 'Dicetak pada: ' + now.toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'medium', timeZone: 'Asia/Jakarta' }) + ' WIB';
+
   // === SHEET: Laba-ETAP ===
   const labaData = [];
   labaData.push(['2. 1. LAPORAN LABA / (RUGI)', '', '', '', '', '', '', '']);
@@ -32,6 +35,7 @@ function generateFinancialStatements(db, outputPath) {
   labaData.push(['PERUMDAM TIRTA SERUYAN', '', '', '', '', '', '', '']);
   labaData.push(['LAPORAN LABA RUGI BERDASARKAN SAK - ETAP', '', '', '', '', '', '', '']);
   labaData.push(['Untuk bulan yang berakhir pada tanggal 31 MEI 2026', '', '', '', '', '', '', '']);
+  labaData.push([waktuCetak, '', '', '', '', '', '', '']);
   labaData.push(['(Dalam Rupiah)', '', '', '', '', '', '', '']);
   labaData.push(['', '', '', '', '', '', '', '']);
   labaData.push(['URAIAN', '', '', '', 'Tahun 2026', '', 'Tahun 2025']);
@@ -90,6 +94,7 @@ function generateFinancialStatements(db, outputPath) {
   neracaData.push(['PERUMDAM TIRTA SERUYAN', '', '', '', '', '', '', '']);
   neracaData.push(['LAPORAN POSISI KEUANGAN', '', '', '', '', '', '', '']);
   neracaData.push(['PER 31 MEI 2026 DAN 31 DESEMBER 2025', '', '', '', '', '', '', '']);
+  neracaData.push([waktuCetak, '', '', '', '', '', '', '']);
   neracaData.push(['', '', '', '', '', '', '', '']);
   neracaData.push(['Uraian', '', '', '', 'Catatan', '', 'Tahun 2026 (Rp.)', 'Tahun 2025 (Rp.)']);
   neracaData.push(['', '', '', '', '', '', '', '']);
@@ -134,6 +139,7 @@ function generateFinancialStatements(db, outputPath) {
     ['TIRTA SERUYAN', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
     ['RENCANA BIAYA OPERASI', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
     ['TAHUN ANGGARAN 2026', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+    [waktuCetak, '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
   ];
   const opSheet = XLSX.utils.aoa_to_sheet(opData);
   XLSX.utils.book_append_sheet(wb, opSheet, 'P-9. Beban Operasi');
@@ -146,6 +152,7 @@ function generateFinancialStatements(db, outputPath) {
     ['', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
     ['RENCANA BIAYA UMUM DAN ADMINISTRASI', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
     ['TAHUN ANGGARAN 2026', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+    [waktuCetak, '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
   ];
   const admSheet = XLSX.utils.aoa_to_sheet(admData);
   XLSX.utils.book_append_sheet(wb, admSheet, 'P-10. Beban Umum & Adm');

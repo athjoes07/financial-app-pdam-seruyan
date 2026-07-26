@@ -12,28 +12,28 @@ function generateAllReports(db, outputDir) {
   const results = [];
 
   try {
-    const jPath = path.join(outputDir, 'Journal 2026.xlsx');
+    const jPath = path.join(outputDir, 'Journal.xlsx');
     generateJournal(db, jPath);
-    results.push({ file: 'Journal 2026.xlsx', status: 'OK' });
-  } catch (e) { results.push({ file: 'Journal 2026.xlsx', status: 'ERROR', error: e.message }); }
+    results.push({ file: 'Journal.xlsx', status: 'OK' });
+  } catch (e) { results.push({ file: 'Journal.xlsx', status: 'ERROR', error: e.message }); }
 
   try {
-    const bbPath = path.join(outputDir, 'BUKU BESAR 2026.xlsx');
+    const bbPath = path.join(outputDir, 'BUKU BESAR.xlsx');
     generateBukuBesar(db, bbPath);
-    results.push({ file: 'BUKU BESAR 2026.xlsx', status: 'OK' });
-  } catch (e) { results.push({ file: 'BUKU BESAR 2026.xlsx', status: 'ERROR', error: e.message }); }
+    results.push({ file: 'BUKU BESAR.xlsx', status: 'OK' });
+  } catch (e) { results.push({ file: 'BUKU BESAR.xlsx', status: 'ERROR', error: e.message }); }
 
   try {
-    const nlPath = path.join(outputDir, 'Neraca Lajur 2026.xlsx');
+    const nlPath = path.join(outputDir, 'Neraca Lajur.xlsx');
     generateNeracaLajur(db, nlPath);
-    results.push({ file: 'Neraca Lajur 2026.xlsx', status: 'OK' });
-  } catch (e) { results.push({ file: 'Neraca Lajur 2026.xlsx', status: 'ERROR', error: e.message }); }
+    results.push({ file: 'Neraca Lajur.xlsx', status: 'OK' });
+  } catch (e) { results.push({ file: 'Neraca Lajur.xlsx', status: 'ERROR', error: e.message }); }
 
   try {
-    const fsPath = path.join(outputDir, 'Neraca, RL, Arus Kas, ekuitas & Rincian 2026.xlsx');
+    const fsPath = path.join(outputDir, 'Neraca, RL, Arus Kas, ekuitas & Rincian.xlsx');
     generateFinancialStatements(db, fsPath);
-    results.push({ file: 'Neraca, RL, Arus Kas, ekuitas & Rincian 2026.xlsx', status: 'OK' });
-  } catch (e) { results.push({ file: 'Neraca, RL, Arus Kas, ekuitas & Rincian 2026.xlsx', status: 'ERROR', error: e.message }); }
+    results.push({ file: 'Neraca, RL, Arus Kas, ekuitas & Rincian.xlsx', status: 'OK' });
+  } catch (e) { results.push({ file: 'Neraca, RL, Arus Kas, ekuitas & Rincian.xlsx', status: 'ERROR', error: e.message }); }
 
   try {
     const atPath = path.join(outputDir, 'AUDIT_TRAIL.xlsx');
@@ -66,11 +66,11 @@ function generateAllReports(db, outputDir) {
       }
     }
     
-    const kompilasiPath = path.join(outputDir, 'Kompilasi Seluruh Laporan 2026.xlsx');
+    const kompilasiPath = path.join(outputDir, 'Kompilasi Seluruh Laporan.xlsx');
     XLSX.writeFile(combinedWb, kompilasiPath, { compression: true, bookType: 'xlsx' });
-    results.push({ file: 'Kompilasi Seluruh Laporan 2026.xlsx', status: 'OK' });
+    results.push({ file: 'Kompilasi Seluruh Laporan.xlsx', status: 'OK' });
   } catch (e) {
-    results.push({ file: 'Kompilasi Seluruh Laporan 2026.xlsx', status: 'ERROR', error: e.message });
+    results.push({ file: 'Kompilasi Seluruh Laporan.xlsx', status: 'ERROR', error: e.message });
   }
 
   return results;

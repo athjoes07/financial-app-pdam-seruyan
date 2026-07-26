@@ -6,9 +6,13 @@ function generateNeracaLajur(db, outputPath) {
   const akun = db.queryAll('SELECT * FROM akun ORDER BY kode');
   const data = [];
 
+  const now = new Date();
+  const waktuCetak = 'Dicetak pada: ' + now.toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'medium', timeZone: 'Asia/Jakarta' }) + ' WIB';
+
   data.push(['NERACA LAJUR', '', '', '', '', '', '', '', '', '', '']);
   data.push(['PERUSAHAAN UMUM DAERAH AIR MINUM TI', '', '', '', '', '', '', '', '', '', '']);
   data.push(['UNTUK TAHUN YANG BERAKHIR 31 MEI 2026', '', '', '', '', '', '', '', '', '', '']);
+  data.push([waktuCetak, '', '', '', '', '', '', '', '', '', '']);
   data.push(['', '', '', '', '', '', '', '', '', '', '']);
   data.push(['URAIAN', '', 'NERACA SALDO AWAL', '', 'MUTASI', '', 'NERACA SALDO', '', 'RUGI/LABA', '', 'NERACA AKHIR']);
   data.push(['', '', 'D', 'K', 'D', 'K', 'D', 'K', 'D', 'K', 'D', 'K']);

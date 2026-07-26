@@ -10,6 +10,9 @@ function generateBukuBesar(db, outputPath) {
     ORDER BY a.kode
   `);
 
+  const now = new Date();
+  const waktuCetak = 'Dicetak pada: ' + now.toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'medium', timeZone: 'Asia/Jakarta' }) + ' WIB';
+
   for (const a of akun) {
     const entries = db.queryAll(`
       SELECT t.tanggal, t.deskripsi, j.debit, j.kredit
@@ -24,6 +27,7 @@ function generateBukuBesar(db, outputPath) {
     data.push(['KABUPATEN SERUYAN', '', '', '', '', '']);
     data.push(['BUKU BESAR', '', '', '', '', '']);
     data.push(['Nama Perk : ' + a.nama, '', '', 'Kode Perkiraan : ' + a.kode, '', '']);
+    data.push([waktuCetak, '', '', '', '', '']);
     data.push(['', '', '', '', '', '']);
     data.push(['Tgl', 'Uraian', 'Ref.', 'Mutasi', '', 'Saldo Akhir']);
     data.push(['', '', '', 'Debet', 'Kredit', '']);
