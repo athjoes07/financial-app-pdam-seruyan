@@ -159,8 +159,7 @@ module.exports = function(db) {
 
   router.get('/download-pdf/:filename', async (req, res) => {
     try {
-      const PdfPrinter = require('pdfmake/build/pdfmake');
-      const pdfFonts = require('pdfmake/build/vfs_fonts');
+      const PdfPrinter = require('pdfmake');
       const XLSX = require('xlsx');
       const fname = decodeURIComponent(req.params.filename);
       
@@ -245,15 +244,23 @@ module.exports = function(db) {
         });
       }
 
-      // Use pdfmake 0.2.x browser-compatible API with built-in fonts
-      PdfPrinter.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
+      const fonts = {
+        Helvetica: {
+          normal: 'Helvetica',
+          bold: 'Helvetica-Bold',
+          italics: 'Helvetica-Oblique',
+          bolditalics: 'Helvetica-BoldOblique'
+        }
+      };
+
+      const printer = new PdfPrinter(fonts);
 
       const docDef = {
         content,
         pageSize: 'A3',
         pageOrientation: 'landscape',
         pageMargins: [20, 30, 20, 30],
-        defaultStyle: { fontSize: 7 },
+        defaultStyle: { font: 'Helvetica', fontSize: 7 },
         footer: (currentPage, pageCount) => ({
           text: `PERUMDAM Tirta Seruyan  |  ${fname.replace('.xlsx', '')}  |  Halaman ${currentPage} dari ${pageCount}`,
           alignment: 'center', fontSize: 6, color: '#6b7280', margin: [0, 5, 0, 0]
@@ -268,10 +275,9 @@ module.exports = function(db) {
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${pdfName}"`);
 
-      const pdfDocGenerator = PdfPrinter.createPdf(docDef);
-      pdfDocGenerator.getBuffer((buffer) => {
-        res.end(buffer);
-      });
+      const pdfDoc = printer.createPdfKitDocument(docDef);
+      pdfDoc.pipe(res);
+      pdfDoc.end();
 
     } catch (err) {
       res.status(500).send('Error generating PDF: ' + err.message);
