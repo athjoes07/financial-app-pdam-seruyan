@@ -29,11 +29,7 @@ export default function App() {
   const searchInputRef = useRef(null)
 
   // Notification states
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: 'Pembaruan sistem berhasil diaplikasikan.', unread: true, time: 'Baru saja' },
-    { id: 2, text: 'Fitur pencarian instan telah aktif.', unread: true, time: '5 menit lalu' },
-    { id: 3, text: 'Backup data mingguan selesai.', unread: false, time: 'Kemarin' },
-  ])
+  const [notifications, setNotifications] = useState([])
   const [showNotifDropdown, setShowNotifDropdown] = useState(false)
   const notifRef = useRef(null)
 

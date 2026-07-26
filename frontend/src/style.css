@@ -2436,3 +2436,180 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===========================================
+   PROCESS PAGE - MOBILE TOGGLE & FILE LIST
+   =========================================== */
+
+/* Toggle group: hidden on desktop, visible on mobile */
+.process-toggle-group {
+  display: none;
+  gap: 0.25rem;
+  background: var(--bg-surface-hover);
+  border-radius: var(--radius-full);
+  padding: 3px;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+}
+
+/* Desktop: show table, hide mobile list */
+.process-desktop-table {
+  display: block;
+}
+.process-mobile-list {
+  display: none;
+}
+
+/* Mobile file list item (like Dashboard breakdown items) */
+.process-file-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 0.75rem;
+}
+.process-file-item:last-child {
+  border-bottom: none;
+}
+
+.process-file-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.process-file-icon.input {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+.process-file-icon.output {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.process-file-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.process-file-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.process-file-meta {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.process-file-actions {
+  display: flex;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+.process-file-action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+}
+.process-file-action-btn:hover {
+  background: var(--bg-surface-hover);
+  transform: scale(1.05);
+}
+.process-file-action-btn.delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* ===========================================
+   PROCESS PAGE - MOBILE RESPONSIVE
+   =========================================== */
+@media (max-width: 768px) {
+  /* Show toggle pills on mobile */
+  .process-toggle-group {
+    display: flex;
+  }
+
+  /* Hide desktop table, show mobile list */
+  .process-desktop-table {
+    display: none !important;
+  }
+  .process-mobile-list {
+    display: block;
+  }
+
+  /* Stack input/output cards vertically, hide non-active */
+  .grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+  .process-card-input,
+  .process-card-output {
+    display: none;
+  }
+  .process-card-input.process-card-active,
+  .process-card-output.process-card-active {
+    display: block;
+  }
+
+  /* Force cards to respect viewport width */
+  .process-card-input,
+  .process-card-output {
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  /* Stack card header (title + XLS/PDF toggle) vertically */
+  .process-card-output .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  /* Truncate long file names in mobile list */
+  .process-file-name {
+    max-width: calc(100vw - 140px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Ensure file items don't overflow */
+  .process-file-item {
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .process-file-info {
+    overflow: hidden;
+  }
+
+  /* Compact pipeline on mobile */
+  .page-title-row {
+    flex-direction: column !important;
+    gap: 0.75rem;
+  }
+  .page-title-row > div:last-child {
+    align-items: flex-start !important;
+    flex-direction: row !important;
+    gap: 0.5rem !important;
+  }
+}

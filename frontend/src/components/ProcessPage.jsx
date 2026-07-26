@@ -11,6 +11,7 @@ export default function ProcessPage() {
   const [viewMode, setViewMode] = useState('input')
   const [trashFiles, setTrashFiles] = useState([])
   const [downloadFormat, setDownloadFormat] = useState('xls')
+  const [processTab, setProcessTab] = useState('input')
 
   useEffect(() => {
     fetchFileList()
@@ -202,10 +203,26 @@ export default function ProcessPage() {
 
       {error && <div className="alert alert-danger">{error}</div>}
 
+      {/* Mobile Toggle for Input/Output */}
+      <div className="process-toggle-group">
+        <button
+          className={`dash-toggle-btn${processTab === 'input' ? ' active' : ''}`}
+          onClick={() => setProcessTab('input')}
+        >
+          📂 Input ({inputFiles.length})
+        </button>
+        <button
+          className={`dash-toggle-btn${processTab === 'output' ? ' active' : ''}`}
+          onClick={() => setProcessTab('output')}
+        >
+          📥 Output (5)
+        </button>
+      </div>
+
       {/* Input & Output Files */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }} className="grid-2">
         {/* Input Files */}
-        <div className="card">
+        <div className={`card process-card-input${processTab === 'input' ? ' process-card-active' : ''}`}>
           <div className="card-header">
             <h3 className="card-title">📂 Input ({inputFiles.length})</h3>
             <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
@@ -217,46 +234,86 @@ export default function ProcessPage() {
           {uploadStatus && <div className="alert alert-info" style={{ fontSize: '0.8rem' }}>{uploadStatus}</div>}
 
           {inputFiles.length > 0 ? (
-            <div className="table-wrap" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              <table className="table-modern">
-                <thead>
-                  <tr>
-                    <th>Nama File</th>
-                    <th>Tgl Upload</th>
-                    <th className="text-right">Ukuran</th>
-                    <th className="text-center" style={{ width: '120px' }}>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {inputFiles.map((f, i) => (
-                    <tr key={i}>
-                      <td>📄 {f.filename}</td>
-                      <td style={{ fontSize: '0.8rem' }}>{new Date(f.modified).toLocaleDateString('id-ID')}</td>
-                      <td className="text-right font-mono" style={{ fontSize: '0.8rem' }}>{(f.size / 1024).toFixed(1)} KB</td>
-                      <td className="text-center" style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
-                        <a 
-                          href={f.downloadUrl || `${API_URL}/api/process/download-input/${encodeURIComponent(f.filename)}`} 
-                          download 
-                          className="btn btn-secondary btn-sm"
-                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                          title="Unduh File"
-                        >
-                          ⬇️
-                        </a>
-                        <button 
-                          onClick={() => handleDeleteInput(f.filename)}
-                          className="btn btn-danger btn-sm"
-                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                          title="Hapus File"
-                        >
-                          🗑️
-                        </button>
-                      </td>
+            <>
+              {/* Desktop Table */}
+              <div className="table-wrap process-desktop-table" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                <table className="table-modern">
+                  <thead>
+                    <tr>
+                      <th>Nama File</th>
+                      <th>Tgl Upload</th>
+                      <th className="text-right">Ukuran</th>
+                      <th className="text-center" style={{ width: '120px' }}>Aksi</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {inputFiles.map((f, i) => (
+                      <tr key={i}>
+                        <td>📄 {f.filename}</td>
+                        <td style={{ fontSize: '0.8rem' }}>{new Date(f.modified).toLocaleDateString('id-ID')}</td>
+                        <td className="text-right font-mono" style={{ fontSize: '0.8rem' }}>{(f.size / 1024).toFixed(1)} KB</td>
+                        <td className="text-center" style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
+                          <a 
+                            href={f.downloadUrl || `${API_URL}/api/process/download-input/${encodeURIComponent(f.filename)}`} 
+                            download 
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                            title="Unduh File"
+                          >
+                            ⬇️
+                          </a>
+                          <button 
+                            onClick={() => handleDeleteInput(f.filename)}
+                            className="btn btn-danger btn-sm"
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                            title="Hapus File"
+                          >
+                            🗑️
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile List */}
+              <div className="process-mobile-list">
+                {inputFiles.map((f, i) => (
+                  <div className="process-file-item" key={i}>
+                    <div className="process-file-icon input">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                      </svg>
+                    </div>
+                    <div className="process-file-info">
+                      <span className="process-file-name">{f.filename}</span>
+                      <span className="process-file-meta">
+                        {(f.size / 1024).toFixed(1)} KB · {new Date(f.modified).toLocaleDateString('id-ID')}
+                      </span>
+                    </div>
+                    <div className="process-file-actions">
+                      <a 
+                        href={f.downloadUrl || `${API_URL}/api/process/download-input/${encodeURIComponent(f.filename)}`} 
+                        download 
+                        className="process-file-action-btn download"
+                        title="Unduh"
+                      >
+                        ⬇️
+                      </a>
+                      <button 
+                        onClick={() => handleDeleteInput(f.filename)}
+                        className="process-file-action-btn delete"
+                        title="Hapus"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           ) : (
             <div className="empty-state">
               <div className="empty-state-icon">📁</div>
@@ -266,7 +323,7 @@ export default function ProcessPage() {
         </div>
 
         {/* Output Files */}
-        <div className="card">
+        <div className={`card process-card-output${processTab === 'output' ? ' process-card-active' : ''}`}>
           <div className="card-header">
             <h3 className="card-title">📥 Output (5 Laporan)</h3>
             <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--bg-subtle)', padding: '0.2rem', borderRadius: '0.5rem' }}>
@@ -286,21 +343,21 @@ export default function ProcessPage() {
               </button>
             </div>
           </div>
+
+          {/* Desktop list */}
+          <div className="process-desktop-table">
           {[
-            'Journal 2026.xlsx',
-            'BUKU BESAR 2026.xlsx',
-            'Neraca Lajur 2026.xlsx',
-            'Neraca, RL, Arus Kas, ekuitas & Rincian 2026.xlsx',
-            'AUDIT_TRAIL.xlsx'
-          ].map((name, i) => {
-            const existing = outputFiles.find(of => of.filename === name)
-            const xlsUrl = `${API_URL}/api/process/download/${encodeURIComponent(name)}`;
-            const pdfUrl = `${API_URL}/api/process/download-pdf/${encodeURIComponent(name)}`;
-            const downloadName = downloadFormat === 'pdf' ? name.replace(/\.xlsx?$/i, '.pdf') : name;
+            { file: 'Journal.xlsx', label: 'Journal' },
+            { file: 'BUKU BESAR.xlsx', label: 'Buku Besar' },
+            { file: 'Neraca Lajur.xlsx', label: 'Neraca Lajur' },
+            { file: 'Neraca, RL, Arus Kas, ekuitas & Rincian.xlsx', label: 'Neraca, RL, Arus Kas, Ekuitas & Rincian' },
+            { file: 'AUDIT_TRAIL.xlsx', label: 'Audit Trail' }
+          ].map((item, i) => {
+            const existing = outputFiles.find(of => of.filename === item.file)
             return (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.625rem 0', borderBottom: i < 4 ? '1px solid var(--border-subtle)' : 'none' }}>
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>{name.replace('.xlsx', '')}</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>{item.label}</div>
                   {existing && (
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                       {(existing.size / 1024).toFixed(1)} KB · Diperbarui: {new Date(existing.modified).toLocaleDateString('id-ID')}
@@ -308,7 +365,7 @@ export default function ProcessPage() {
                   )}
                 </div>
                 <button
-                  onClick={() => handleDownloadOutput(name, downloadFormat)}
+                  onClick={() => handleDownloadOutput(item.file, downloadFormat)}
                   className="btn btn-primary btn-sm"
                   style={{ minWidth: '80px', textAlign: 'center' }}
                 >
@@ -317,6 +374,40 @@ export default function ProcessPage() {
               </div>
             )
           })}
+          </div>
+
+          {/* Mobile list */}
+          <div className="process-mobile-list">
+          {[
+            { file: 'Journal.xlsx', label: 'Journal', icon: '📒' },
+            { file: 'BUKU BESAR.xlsx', label: 'Buku Besar', icon: '📗' },
+            { file: 'Neraca Lajur.xlsx', label: 'Neraca Lajur', icon: '📘' },
+            { file: 'Neraca, RL, Arus Kas, ekuitas & Rincian.xlsx', label: 'Neraca, RL, Arus Kas, Ekuitas & Rincian', icon: '📕' },
+            { file: 'AUDIT_TRAIL.xlsx', label: 'Audit Trail', icon: '📋' }
+          ].map((item, i) => {
+            const existing = outputFiles.find(of => of.filename === item.file)
+            return (
+              <div className="process-file-item" key={i}>
+                <div className="process-file-icon output">
+                  <span style={{ fontSize: '1.25rem' }}>{item.icon}</span>
+                </div>
+                <div className="process-file-info">
+                  <span className="process-file-name">{item.label}</span>
+                  <span className="process-file-meta">
+                    {existing ? `${(existing.size / 1024).toFixed(1)} KB` : 'Belum diproses'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleDownloadOutput(item.file, downloadFormat)}
+                  className="process-file-action-btn download"
+                  title={`Download ${downloadFormat.toUpperCase()}`}
+                >
+                  ⬇️
+                </button>
+              </div>
+            )
+          })}
+          </div>
         </div>
       </div>
 
