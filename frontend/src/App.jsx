@@ -4,6 +4,7 @@ import TransaksiPage from './components/TransaksiPage'
 import LabaRugi from './components/LabaRugi'
 import Neraca from './components/Neraca'
 import ProcessPage from './components/ProcessPage'
+import AuditTrailPage from './components/AuditTrailPage'
 import FirebasePage from './components/FirebasePage'
 import { getTransaksi } from './api'
 import './style.css'
@@ -14,6 +15,7 @@ const navItems = [
   { id: 'laba-rugi', label: 'Laba Rugi', icon: '📈' },
   { id: 'neraca', label: 'Neraca', icon: '⚖️' },
   { id: 'process', label: 'Proses', icon: '⚡' },
+  { id: 'audit-trail', label: 'Riwayat Audit', icon: '🔒' },
 ]
 
 export default function App() {
@@ -249,9 +251,10 @@ export default function App() {
           {page === 'dashboard' && <Dashboard setPage={setPage} />}
           {page === 'transaksi' && <TransaksiPage initialSearch={transaksiSearchParam} key={transaksiSearchParam} />}
           {page === 'laba-rugi' && <LabaRugi />}
-          {page === 'neraca' && <Neraca />}
-          {page === 'process' && <ProcessPage />}
-          {page === 'firebase' && <FirebasePage />}
+          { page === 'neraca' && <Neraca /> }
+          { page === 'process' && <ProcessPage /> }
+          { page === 'audit-trail' && <AuditTrailPage /> }
+          { page === 'firebase' && <FirebasePage /> }
         </main>
       </div>
 
