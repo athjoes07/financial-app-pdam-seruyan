@@ -17,7 +17,13 @@ async function main() {
   app.use('/api/process', require('./routes/process')(db));
 
   const distPath = path.join(__dirname, '..', 'frontend', 'dist');
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, {
+    setHeaders: (res, path) => {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }));
 
   // Serve Research-Agent-Skills-Collection at /research
   const researchPath = path.join(__dirname, '..', 'Research-Agent-Skills-Collection-main');

@@ -91,14 +91,31 @@ function createTx(db, tanggal, deskripsi, entries, sumber = '') {
   const result = db.queryOne('SELECT MAX(id) as id FROM transaksi');
   const tId = result.id;
 
+  let totalDebit = 0;
+  let totalKredit = 0;
+
   for (const e of entries) {
     const akun = db.queryOne('SELECT id FROM akun WHERE kode = ?', [e.kode]);
     if (akun) {
       db.run('INSERT INTO jurnal (transaksi_id, akun_id, debit, kredit) VALUES (?, ?, ?, ?)', [
         tId, akun.id, e.debit, e.kredit
       ]);
+      totalDebit += e.debit || 0;
+      totalKredit += e.kredit || 0;
     }
   }
+
+  const status = (totalDebit === totalKredit && totalDebit > 0) ? 'BALANCED' : 'UNBALANCED';
+  const detail = `Total Debit: Rp ${totalDebit.toLocaleString('id-ID')} | Total Kredit: Rp ${totalKredit.toLocaleString('id-ID')}`;
+  const afterState = {
+    transaksi: { id: tId, tanggal, deskripsi, sumber },
+    jurnal: entries
+  };
+
+  if (typeof db.insertAuditLog === 'function') {
+    db.insertAuditLog('TRANSAKSI', sumber || 'Sistem', deskripsi, status, detail, null, afterState);
+  }
+
   return tId;
 }
 

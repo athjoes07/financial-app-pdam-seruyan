@@ -6,7 +6,7 @@ function generateAuditTrail(db, outputPath) {
   let logs = [];
   try {
     logs = db.queryAll(`
-      SELECT timestamp, kategori, sumber_file, deskripsi, status, detail
+      SELECT timestamp, kategori, sumber_file, deskripsi, status, detail, hash, prev_hash, before_state, after_state
       FROM audit_log
       ORDER BY id DESC
     `);
@@ -31,16 +31,17 @@ function generateAuditTrail(db, outputPath) {
       sumber_file: t.sumber || 'Sistem Keuangan',
       deskripsi: t.deskripsi,
       status: (t.total_debit === t.total_kredit && t.total_debit > 0) ? 'BALANCED' : 'UNBALANCED',
-      detail: `Total Debit: Rp ${(t.total_debit || 0).toLocaleString('id-ID')} | Total Kredit: Rp ${(t.total_kredit || 0).toLocaleString('id-ID')}`
+      detail: `Total Debit: Rp ${(t.total_debit || 0).toLocaleString('id-ID')} | Total Kredit: Rp ${(t.total_kredit || 0).toLocaleString('id-ID')}`,
+      hash: '', prev_hash: '', before_state: '', after_state: ''
     }));
   }
 
   const data = [];
-  data.push(['PERUMDAM TIRTA SERUYAN - KABUPATEN SERUYAN', '', '', '', '', '']);
-  data.push(['AUDIT TRAIL & LOG PEMROSESAN DATA KEUANGAN', '', '', '', '', '']);
-  data.push(['Tanggal Cetak: ' + new Date().toLocaleString('id-ID'), '', '', '', '', '']);
-  data.push(['', '', '', '', '', '']);
-  data.push(['No', 'Waktu / Timestamp', 'Kategori / Sumber', 'File Input / Ref', 'Deskripsi Operasi', 'Status', 'Detail Mutasi / Ringkasan']);
+  data.push(['PERUMDAM TIRTA SERUYAN - KABUPATEN SERUYAN', '', '', '', '', '', '', '', '', '']);
+  data.push(['AUDIT TRAIL (CRYPTOGRAPHIC LOG & DATA SNAPSHOTS)', '', '', '', '', '', '', '', '', '']);
+  data.push(['Tanggal Cetak: ' + new Date().toLocaleString('id-ID'), '', '', '', '', '', '', '', '', '']);
+  data.push(['', '', '', '', '', '', '', '', '', '']);
+  data.push(['No', 'Waktu / Timestamp', 'Kategori / Sumber', 'File Input / Ref', 'Deskripsi Operasi', 'Status', 'Detail Mutasi / Ringkasan', 'SHA-256 Hash Kriptografi', 'Hash Sebelumnya (Prev)', 'Before State (JSON)', 'After State (JSON)']);
 
   logs.forEach((l, idx) => {
     data.push([
@@ -50,7 +51,11 @@ function generateAuditTrail(db, outputPath) {
       l.sumber_file,
       l.deskripsi,
       l.status,
-      l.detail
+      l.detail,
+      l.hash || '',
+      l.prev_hash || '',
+      l.before_state || '',
+      l.after_state || ''
     ]);
   });
 
@@ -62,7 +67,11 @@ function generateAuditTrail(db, outputPath) {
     { wch: 30 },
     { wch: 45 },
     { wch: 15 },
-    { wch: 50 }
+    { wch: 50 },
+    { wch: 65 }, // Hash
+    { wch: 65 }, // Prev Hash
+    { wch: 100 }, // Before
+    { wch: 100 }  // After
   ];
 
   XLSX.utils.book_append_sheet(wb, sheet, 'AUDIT LOG');

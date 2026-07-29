@@ -1,6 +1,7 @@
 const initSqlJs = require('sql.js');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const COA = require('./coa-master');
 
 // Use /tmp for cloud environments (firebase functions), local dir otherwise
@@ -87,9 +88,21 @@ async function initDatabase() {
       sumber_file TEXT DEFAULT '',
       deskripsi TEXT NOT NULL,
       status TEXT DEFAULT 'SUCCESS',
-      detail TEXT DEFAULT ''
+      detail TEXT DEFAULT '',
+      hash TEXT DEFAULT '',
+      prev_hash TEXT DEFAULT '',
+      before_state TEXT DEFAULT '',
+      after_state TEXT DEFAULT ''
     )
   `);
+
+  // Dynamically add columns if they don't exist in legacy databases
+  try { db.run('ALTER TABLE audit_log ADD COLUMN hash TEXT DEFAULT ""'); } catch(e) {}
+  try { db.run('ALTER TABLE audit_log ADD COLUMN prev_hash TEXT DEFAULT ""'); } catch(e) {}
+  try { db.run('ALTER TABLE audit_log ADD COLUMN before_state TEXT DEFAULT ""'); } catch(e) {}
+  try { db.run('ALTER TABLE audit_log ADD COLUMN after_state TEXT DEFAULT ""'); } catch(e) {}
+
+
 
   const count = queryOne('SELECT COUNT(*) as cnt FROM akun');
   if (count.cnt === 0) {
@@ -106,6 +119,30 @@ async function initDatabase() {
   db.queryAll = queryAll;
   db.queryOne = queryOne;
   db.queryRun = run;
+
+  // Audit Log Hash Chaining Method
+  db.insertAuditLog = function(kategori, sumber_file, deskripsi, status, detail, beforeState = null, afterState = null) {
+    const timestamp = new Date().toISOString();
+    
+    // Get previous hash
+    const prevLog = queryOne('SELECT hash FROM audit_log ORDER BY id DESC LIMIT 1');
+    const prev_hash = prevLog && prevLog.hash ? prevLog.hash : 'GENESIS';
+
+    const bsStr = beforeState ? JSON.stringify(beforeState) : '';
+    const asStr = afterState ? JSON.stringify(afterState) : '';
+
+    // Calculate Hash: SHA256(prev_hash + timestamp + kategori + sumber_file + deskripsi + status + before_state + after_state)
+    const rawString = `${prev_hash}${timestamp}${kategori}${sumber_file}${deskripsi}${status}${bsStr}${asStr}`;
+    const hash = crypto.createHash('sha256').update(rawString).digest('hex');
+
+    run(`
+      INSERT INTO audit_log 
+      (timestamp, kategori, sumber_file, deskripsi, status, detail, hash, prev_hash, before_state, after_state)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [timestamp, kategori, sumber_file, deskripsi, status, detail, hash, prev_hash, bsStr, asStr]);
+
+    return hash;
+  };
 
   return db;
 }
