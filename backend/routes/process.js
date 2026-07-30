@@ -381,5 +381,91 @@ module.exports = function(db) {
     }
   });
 
+  // Preview Excel file content (all sheets, first N rows)
+  router.get('/preview/:source/:filename', (req, res) => {
+    try {
+      const XLSX = require('xlsx');
+      const fname = decodeURIComponent(req.params.filename);
+      const source = req.params.source; // 'input' or 'output'
+      const maxRows = parseInt(req.query.rows) || 50;
+
+      let filePath;
+      if (source === 'input') {
+        filePath = path.join(inputDir, fname);
+      } else {
+        filePath = path.join(outputDir, fname);
+        if (!fs.existsSync(filePath)) {
+          filePath = path.join(sampleOutputDir, fname);
+        }
+      }
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'File tidak ditemukan: ' + fname });
+      }
+
+      const wb = XLSX.readFile(filePath, { type: 'buffer' });
+      const sheets = {};
+
+      for (const sheetName of wb.SheetNames) {
+        const ws = wb.Sheets[sheetName];
+        const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+        const rows = [];
+        const totalRows = Math.min(range.e.r + 1, maxRows);
+
+        for (let r = 0; r < totalRows; r++) {
+          const row = [];
+          for (let c = 0; c <= range.e.c; c++) {
+            const addr = XLSX.utils.encode_cell({ r, c });
+            const cell = ws[addr];
+            let val = cell ? cell.v : null;
+            if (cell && cell.t === 'd' && cell.w) val = cell.w;
+            if (val === undefined || val === null) val = null;
+            row.push(val);
+          }
+          rows.push(row);
+        }
+
+        sheets[sheetName] = {
+          rows,
+          totalRows: range.e.r + 1,
+          totalCols: range.e.c + 1,
+          hasMore: range.e.r + 1 > maxRows
+        };
+      }
+
+      res.json({
+        filename: fname,
+        sheetNames: wb.SheetNames,
+        sheets,
+        totalSheets: wb.SheetNames.length
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Upload multiple files
+  router.post('/upload-multiple', (req, res) => {
+    try {
+      const { files } = req.body; // Array of { filename, contentBase64 }
+      if (!Array.isArray(files) || files.length === 0) {
+        return res.status(400).json({ error: 'Tidak ada file yang dikirim' });
+      }
+
+      const results = [];
+      for (const file of files) {
+        const cleanBase64 = file.contentBase64.replace(/^data:.*;base64,/, '');
+        const buffer = Buffer.from(cleanBase64, 'base64');
+        const filePath = path.join(inputDir, file.filename);
+        fs.writeFileSync(filePath, buffer);
+        results.push({ filename: file.filename, size: buffer.length, status: 'OK' });
+      }
+
+      res.json({ message: `${results.length} file berhasil diunggah`, files: results });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   return router;
 };

@@ -1,0 +1,6 @@
+﻿Server berjalan di http://localhost:3000
+
+Port aktif: 3000
+API proses input: POST /api/process/input
+API generate output: POST /api/process/generate
+API run all: POST /api/process/run-all
