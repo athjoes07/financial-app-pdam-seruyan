@@ -35,6 +35,10 @@ async function main() {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 
+  if (process.env.VERCEL) {
+    return app;
+  }
+
   const PORT = 3000;
 
   const server = http.createServer(app);
@@ -47,7 +51,17 @@ async function main() {
   });
 }
 
-main().catch(err => {
-  console.error('Gagal menjalankan server:', err);
-  process.exit(1);
-});
+if (!process.env.VERCEL) {
+  main().catch(err => {
+    console.error('Gagal menjalankan server:', err);
+    process.exit(1);
+  });
+} else {
+  let appInstance;
+  module.exports = async (req, res) => {
+    if (!appInstance) {
+      appInstance = await main();
+    }
+    return appInstance(req, res);
+  };
+}

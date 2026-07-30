@@ -8,10 +8,12 @@ const { initDatabase } = require('../database');
 
 module.exports = function(db) {
   const router = express.Router();
-  const inputDir = path.join(__dirname, '..', '..', 'input');
-  const inputTrashDir = path.join(__dirname, '..', 'input-trash');
-  const outputDir = path.join(__dirname, '..', '..', 'output-app');
-  const sampleOutputDir = path.join(__dirname, '..', '..', 'output');
+  const isServerless = process.env.K_SERVICE || process.env.VERCEL;
+  const baseDir = isServerless ? '/tmp' : path.join(__dirname, '..', '..');
+  const inputDir = isServerless ? '/tmp' : path.join(baseDir, 'input');
+  const inputTrashDir = isServerless ? '/tmp/trash' : path.join(baseDir, 'input-trash');
+  const outputDir = isServerless ? '/tmp' : path.join(baseDir, 'output-app');
+  const sampleOutputDir = isServerless ? '/tmp' : path.join(baseDir, 'output');
 
   if (!fs.existsSync(inputTrashDir)) fs.mkdirSync(inputTrashDir, { recursive: true });
 

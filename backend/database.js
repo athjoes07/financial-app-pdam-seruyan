@@ -6,7 +6,7 @@ const COA = require('./coa-master');
 
 // Use /tmp for cloud environments (firebase functions), local dir otherwise
 const DB_DIR = process.env.FUNCTIONS_EMULATOR ? __dirname :
-  (process.env.K_SERVICE ? '/tmp' : __dirname);
+  (process.env.K_SERVICE || process.env.VERCEL ? '/tmp' : __dirname);
 const DB_PATH = path.join(DB_DIR, 'finance.db');
 let db;
 
@@ -38,7 +38,9 @@ function run(sql, params = []) {
 }
 
 async function initDatabase() {
-  const SQL = await initSqlJs();
+  const SQL = await initSqlJs({
+    locateFile: file => path.join(__dirname, 'node_modules', 'sql.js', 'dist', file)
+  });
 
   if (fs.existsSync(DB_PATH)) {
     const fileBuffer = fs.readFileSync(DB_PATH);
