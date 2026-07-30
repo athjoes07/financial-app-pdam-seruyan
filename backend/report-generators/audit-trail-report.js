@@ -5,6 +5,7 @@ const fs = require('fs');
 function generateAuditTrail(db, outputPath) {
   const wb = XLSX.utils.book_new();
 
+<<<<<<< HEAD
   const now = new Date();
   const waktuCetak = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
@@ -19,6 +20,17 @@ function generateAuditTrail(db, outputPath) {
   for (const f of inputFiles) {
     const txCount = db.queryOne('SELECT COUNT(*) as cnt FROM transaksi WHERE sumber = ?', [f.sumber]);
     inputFileMap.push([no++, f.sumber, 'Sheet0', 'Semua baris', '-', '-', 'Input ke DB', 'TERPROSES']);
+=======
+  let logs = [];
+  try {
+    logs = db.queryAll(`
+      SELECT timestamp, kategori, sumber_file, deskripsi, status, detail, hash, prev_hash, before_state, after_state
+      FROM audit_log
+      ORDER BY id DESC
+    `);
+  } catch (e) {
+    logs = [];
+>>>>>>> 12181dbbbfd837fbdcfd5aa7e3fdddc3878b99f6
   }
   inputFileMap.push(['', '', '', '', '', '', '', '']);
   inputFileMap.push(['TOTAL FILE INPUT', inputFiles.length + ' file', '', '', '', '', '', '']);
@@ -27,6 +39,7 @@ function generateAuditTrail(db, outputPath) {
   inputFileSheet['!cols'] = [{ wch: 5 }, { wch: 35 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 35 }, { wch: 35 }, { wch: 15 }];
   XLSX.utils.book_append_sheet(wb, inputFileSheet, 'Input File Map');
 
+<<<<<<< HEAD
   // === SHEET 2: Journal Entry Audit ===
   const journalAudit = [];
   journalAudit.push(['AUDIT TRAIL - SETIAP BARIS JOURNAL (add_tx)']);
@@ -66,9 +79,43 @@ function generateAuditTrail(db, outputPath) {
       kreditAkun,
       jumlah,
       'BUKU BESAR | Journal'
+=======
+    logs = txs.map(t => ({
+      timestamp: t.created_at || new Date().toISOString(),
+      kategori: t.sumber || 'TRANSAKSI',
+      sumber_file: t.sumber || 'Sistem Keuangan',
+      deskripsi: t.deskripsi,
+      status: (t.total_debit === t.total_kredit && t.total_debit > 0) ? 'BALANCED' : 'UNBALANCED',
+      detail: `Total Debit: Rp ${(t.total_debit || 0).toLocaleString('id-ID')} | Total Kredit: Rp ${(t.total_kredit || 0).toLocaleString('id-ID')}`,
+      hash: '', prev_hash: '', before_state: '', after_state: ''
+    }));
+  }
+
+  const data = [];
+  data.push(['PERUMDAM TIRTA SERUYAN - KABUPATEN SERUYAN', '', '', '', '', '', '', '', '', '']);
+  data.push(['AUDIT TRAIL (CRYPTOGRAPHIC LOG & DATA SNAPSHOTS)', '', '', '', '', '', '', '', '', '']);
+  data.push(['Tanggal Cetak: ' + new Date().toLocaleString('id-ID'), '', '', '', '', '', '', '', '', '']);
+  data.push(['', '', '', '', '', '', '', '', '', '']);
+  data.push(['No', 'Waktu / Timestamp', 'Kategori / Sumber', 'File Input / Ref', 'Deskripsi Operasi', 'Status', 'Detail Mutasi / Ringkasan', 'SHA-256 Hash Kriptografi', 'Hash Sebelumnya (Prev)', 'Before State (JSON)', 'After State (JSON)']);
+
+  logs.forEach((l, idx) => {
+    data.push([
+      idx + 1,
+      l.timestamp,
+      l.kategori,
+      l.sumber_file,
+      l.deskripsi,
+      l.status,
+      l.detail,
+      l.hash || '',
+      l.prev_hash || '',
+      l.before_state || '',
+      l.after_state || ''
+>>>>>>> 12181dbbbfd837fbdcfd5aa7e3fdddc3878b99f6
     ]);
   }
 
+<<<<<<< HEAD
   const journalAuditSheet = XLSX.utils.aoa_to_sheet(journalAudit);
   journalAuditSheet['!cols'] = [{ wch: 5 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 40 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 30 }];
   XLSX.utils.book_append_sheet(wb, journalAuditSheet, 'Journal Entry Audit');
@@ -85,6 +132,21 @@ function generateAuditTrail(db, outputPath) {
     ['Neraca Lajur 2026.xlsx', '5 sheets (Jan-Mei)', 'A1:L7+', 'Neraca saldo per bulan', 'Jurnal DB', 'Neraca lajur bulanan'],
     ['Neraca, RL, Arus Kas.xlsx', 'Laba-ETAP, Neraca, P-9, P-10', 'A1:H30+', 'Laporan keuangan', 'Jurnal DB', 'Laporan finansial'],
     ['AUDIT_TRAIL.xlsx', '6 sheets', 'A1:K5+', 'Audit trail lengkap', 'Semua data', 'Input map, jurnal audit, COA usage'],
+=======
+  const sheet = XLSX.utils.aoa_to_sheet(data);
+  sheet['!cols'] = [
+    { wch: 6 },
+    { wch: 22 },
+    { wch: 20 },
+    { wch: 30 },
+    { wch: 45 },
+    { wch: 15 },
+    { wch: 50 },
+    { wch: 65 }, // Hash
+    { wch: 65 }, // Prev Hash
+    { wch: 100 }, // Before
+    { wch: 100 }  // After
+>>>>>>> 12181dbbbfd837fbdcfd5aa7e3fdddc3878b99f6
   ];
 
   outputFiles.forEach((f, i) => {
