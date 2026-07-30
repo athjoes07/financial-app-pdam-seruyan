@@ -34,32 +34,28 @@ module.exports = function(db) {
       // Move to trash
       fs.renameSync(filePath, trashPath);
 
-      if (fileDate === today) {
-        // Record Before State for Audit Trail
-        const beforeTxs = db.queryAll('SELECT * FROM transaksi WHERE sumber = ?', [fname]);
-        const beforeState = [];
-        for (const tx of beforeTxs) {
-          const jurnal = db.queryAll('SELECT * FROM jurnal WHERE transaksi_id = ?', [tx.id]);
-          beforeState.push({ transaksi: tx, jurnal });
-        }
-
-        // Delete transactions AND related jurnal from database
-        // First enable FK support (SQLite needs this explicitly)
-        db.queryRun('PRAGMA foreign_keys = ON');
-        // Delete orphan jurnal entries tied to this file's transactions
-        db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ?)', [fname]);
-        db.queryRun('DELETE FROM transaksi WHERE sumber = ?', [fname]);
-        // Also clean up any remaining orphan journal entries just in case
-        db.queryRun('DELETE FROM jurnal WHERE transaksi_id NOT IN (SELECT id FROM transaksi)');
-        
-        if (typeof db.insertAuditLog === 'function' && beforeTxs.length > 0) {
-          db.insertAuditLog('DELETE', fname, 'Hapus Data ' + fname, 'SUCCESS', 'Dihapus ' + beforeTxs.length + ' transaksi', beforeState, null);
-        }
-
-        res.json({ message: 'File dihapus dan transaksi terkait dibatalkan (karena diupload hari ini).', deletedFromDb: true });
-      } else {
-        res.json({ message: 'File dihapus dari sistem, namun transaksi tetap tersimpan (karena diupload di hari sebelumnya).', deletedFromDb: false });
+      // Record Before State for Audit Trail
+      const beforeTxs = db.queryAll('SELECT * FROM transaksi WHERE sumber = ?', [fname]);
+      const beforeState = [];
+      for (const tx of beforeTxs) {
+        const jurnal = db.queryAll('SELECT * FROM jurnal WHERE transaksi_id = ?', [tx.id]);
+        beforeState.push({ transaksi: tx, jurnal });
       }
+
+      // Delete transactions AND related jurnal from database
+      // First enable FK support (SQLite needs this explicitly)
+      db.queryRun('PRAGMA foreign_keys = ON');
+      // Delete orphan jurnal entries tied to this file's transactions
+      db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ?)', [fname]);
+      db.queryRun('DELETE FROM transaksi WHERE sumber = ?', [fname]);
+      // Also clean up any remaining orphan journal entries just in case
+      db.queryRun('DELETE FROM jurnal WHERE transaksi_id NOT IN (SELECT id FROM transaksi)');
+      
+      if (typeof db.insertAuditLog === 'function' && beforeTxs.length > 0) {
+        db.insertAuditLog('DELETE', fname, 'Hapus Data ' + fname, 'SUCCESS', 'Dihapus ' + beforeTxs.length + ' transaksi', beforeState, null);
+      }
+
+      res.json({ message: 'File dihapus dan transaksi terkait dibatalkan dari sistem.', deletedFromDb: true });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

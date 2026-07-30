@@ -26,14 +26,16 @@ function processInputFiles(db, inputDir) {
         results.files_processed.push(parsed.source + ': ' + file);
 
         if (parsed.rows.length > 0) {
+          const yearMatch = file.match(/20\d{2}/);
+          const currentYear = yearMatch ? yearMatch[0] : new Date().getFullYear();
           const bulanNum = monthMap[(parsed.bulan || 'mei').toLowerCase()] || '05';
-          const tgl = '2026-' + bulanNum + '-18';
+          const tgl = `${currentYear}-${bulanNum}-18`;
           const totalHA = parsed.summary.total_ha;
           const totalAdm = parsed.summary.total_adm;
           const totalDM = parsed.summary.total_dm;
 
-          if (totalHA > 0) {
-            const desc = 'Rekening Air ' + parsed.bulan + ' 2026';
+          if (totalHA > 0 || totalAdm > 0) {
+            const desc = `Rekening Air ${parsed.bulan} ${currentYear}`;
             const txId = createTx(db, tgl, desc, [
               { kode: '13.01.00', debit: totalHA + totalAdm, kredit: 0 },
               { kode: '81.01.10', debit: 0, kredit: totalHA },
@@ -43,7 +45,7 @@ function processInputFiles(db, inputDir) {
           }
 
           if (totalDM > 0) {
-            const desc = 'Dana Meter ' + parsed.bulan + ' 2026';
+            const desc = `Dana Meter ${parsed.bulan} ${currentYear}`;
             const txId = createTx(db, tgl, desc, [
               { kode: '13.01.40', debit: totalDM, kredit: 0 },
               { kode: '81.01.20', debit: 0, kredit: totalDM },
@@ -57,26 +59,28 @@ function processInputFiles(db, inputDir) {
         const parsed = lppParser.parse(filePath);
         results.files_processed.push(parsed.source + ': ' + file);
 
-        const tgl = parsed.tgl_transaksi || '2026-05-18';
-        const total = parsed.total_air + parsed.total_adm;
+        const yearMatch = file.match(/20\d{2}/);
+        const currentYear = yearMatch ? yearMatch[0] : new Date().getFullYear();
+        const tgl = parsed.tgl_transaksi || `${currentYear}-05-18`;
+        const totalAirAdm = parsed.total_air + parsed.total_adm;
+        const totalDM = parsed.total_dm || 0;
+        const totalDenda = parsed.total_denda || 0;
+        
+        const actualTotalKas = totalAirAdm + totalDM + totalDenda;
 
-        if (parsed.total_terima > 0 || total > 0) {
+        if (actualTotalKas > 0) {
           const desc = 'Penerimaan Rek Air (' + parsed.sumber + ')';
-          let txId;
+          
+          const entries = [
+            { kode: '11.01.00', debit: actualTotalKas, kredit: 0 }
+          ];
 
-          if (parsed.total_denda > 0) {
-            txId = createTx(db, tgl, desc, [
-              { kode: '11.01.00', debit: parsed.total_terima || total + parsed.total_denda, kredit: 0 },
-              { kode: '13.01.00', debit: 0, kredit: total },
-              { kode: '81.02.50', debit: 0, kredit: parsed.total_denda },
-            ], file);
-          } else {
-            txId = createTx(db, tgl, desc, [
-              { kode: '11.01.00', debit: total, kredit: 0 },
-              { kode: '13.01.00', debit: 0, kredit: total },
-            ], file);
-          }
-          results.transactions.push({ id: txId, desc, total: parsed.total_terima || total });
+          if (totalAirAdm > 0) entries.push({ kode: '13.01.00', debit: 0, kredit: totalAirAdm });
+          if (totalDM > 0) entries.push({ kode: '13.01.40', debit: 0, kredit: totalDM });
+          if (totalDenda > 0) entries.push({ kode: '81.02.50', debit: 0, kredit: totalDenda });
+
+          const txId = createTx(db, tgl, desc, entries, file);
+          results.transactions.push({ id: txId, desc, total: actualTotalKas });
         }
       }
     } catch (err) {
