@@ -15,6 +15,8 @@ function processInputFiles(db, inputDir) {
 
   const files = fs.readdirSync(inputDir).filter(f => /\.xlsx?$/i.test(f));
 
+  const monthMap = { januari: '01', februari: '02', maret: '03', april: '04', mei: '05', juni: '06', juli: '07', agustus: '08', september: '09', oktober: '10', november: '11', desember: '12' };
+
   for (const file of files) {
     const filePath = path.join(inputDir, file);
 
@@ -24,8 +26,8 @@ function processInputFiles(db, inputDir) {
         results.files_processed.push(parsed.source + ': ' + file);
 
         if (parsed.rows.length > 0) {
-          // Create DRD journal: D 13.01.00 Piutang, C 81.01.10 Pendapatan HA, C 81.01.20 Pendapatan Adm
-          const tgl = '2026-05-18';
+          const bulanNum = monthMap[(parsed.bulan || 'mei').toLowerCase()] || '05';
+          const tgl = '2026-' + bulanNum + '-18';
           const totalHA = parsed.summary.total_ha;
           const totalAdm = parsed.summary.total_adm;
           const totalDM = parsed.summary.total_dm;

@@ -2613,3 +2613,109 @@ html {
     gap: 0.5rem !important;
   }
 }
+
+/* ===========================================
+   PROCESS PAGE - FILE ITEMS
+   =========================================== */
+.process-file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.process-file-item:last-child {
+  border-bottom: none;
+}
+
+.process-file-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.process-file-icon.input {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.process-file-icon.output {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.process-file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.process-file-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.process-file-meta {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.process-file-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.process-file-action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+
+.process-file-action-btn:hover {
+  background: var(--bg-surface-hover);
+}
+
+.process-file-action-btn.download {
+  background: var(--success-bg);
+  color: var(--success);
+  border-color: var(--success-border);
+}
+
+.process-file-action-btn.delete {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
+
+.process-mobile-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .process-mobile-list {
+    display: block;
+  }
+  .process-desktop-table {
+    display: none;
+  }
+}

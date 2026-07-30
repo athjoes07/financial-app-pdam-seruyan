@@ -2,6 +2,29 @@ const fs = require('fs');
 const path = require('path');
 const XLSX = require('xlsx');
 
+function excelDateToISO(val) {
+  if (val === null || val === undefined || val === '') return '2026-01-01';
+  if (typeof val === 'number') {
+    const d = XLSX.SSF.parse_date_code(val);
+    if (d) {
+      const y = d.y || 2026;
+      const m = String(d.m || 1).padStart(2, '0');
+      const dd = String(d.d || 1).padStart(2, '0');
+      return y + '-' + m + '-' + dd;
+    }
+  }
+  const s = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const monthMap = { jan: '01', feb: '02', mar: '03', apr: '04', mei: '05', jun: '06', jul: '07', agu: '08', sep: '09', okt: '10', nov: '11', des: '12' };
+  const m = s.match(/(\d{1,2})\s+(\w+)/i);
+  if (m) {
+    const dd = String(m[1]).padStart(2, '0');
+    const mon = monthMap[m[2].substring(0, 3).toLowerCase()] || '01';
+    return '2026-' + mon + '-' + dd;
+  }
+  return '2026-01-01';
+}
+
 function createTx(db, tanggal, deskripsi, entries, sumber = '') {
   if (!entries || entries.length === 0) return null;
   db.run('INSERT INTO transaksi (tanggal, deskripsi, sumber) VALUES (?, ?, ?)', [tanggal, deskripsi, sumber]);
@@ -45,8 +68,10 @@ function parseDaftarVoucher(db, filePath, sumberFile) {
   for (let i = 0; i < data.length; i++) {
     const r = data[i];
     if (!r || r.length < 5) continue;
-    if (String(r[0]).match(/^\d+\s+Jan/i) || String(r[0]).match(/^\d+\s+Feb/i) || String(r[0]).match(/^\d+\s+Mar/i) || String(r[0]).match(/^\d+\s+Apr/i) || String(r[0]).match(/^\d+\s+Mei/i) || String(r[0]).match(/^\d+\s+Jun/i) || String(r[0]).match(/^\d+\s+Jul/i) || String(r[0]).match(/^\d+\s+Agu/i) || String(r[0]).match(/^\d+\s+Sep/i) || String(r[0]).match(/^\d+\s+Okt/i) || String(r[0]).match(/^\d+\s+Nov/i) || String(r[0]).match(/^\d+\s+Des/i)) {
-      tgl = String(r[0]);
+    const cell0 = String(r[0] || '').trim();
+    if (cell0 === '' && !r[5]) continue;
+    if (cell0.match(/^\d+\s+(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Sep|Okt|Nov|Des)/i) || (typeof r[0] === 'number' && r[0] > 40000)) {
+      tgl = excelDateToISO(r[0]);
       noVoucher = String(r[1] || '').trim();
       uraian = String(r[2] || '').trim();
       const kodeDebet = String(r[5] || '').trim();
@@ -77,19 +102,22 @@ function parseJurnalBayar(db, filePath, sumberFile) {
   for (let i = 0; i < data.length; i++) {
     const r = data[i];
     if (!r || r.length < 7) continue;
-    const tgl = String(r[0] || '').trim();
+    const tgl = excelDateToISO(r[0]);
     const voucerNo = String(r[1] || '').trim();
     const uraian = String(r[3] || '').trim();
     const kas = parseFloat(String(r[6] || '0').replace(/[^0-9.-]/g, '')) || 0;
     const utangUsaha = parseFloat(String(r[7] || '0').replace(/[^0-9.-]/g, '')) || 0;
     const utangNonUsaha = parseFloat(String(r[8] || '0').replace(/[^0-9.-]/g, '')) || 0;
 
-    if (tgl && uraian && kas > 0) {
-      const entries = [{ kode: '11.01.00', debit: 0, kredit: kas }];
+    if (tgl && uraian && (kas > 0 || utangUsaha > 0 || utangNonUsaha > 0)) {
+      const entries = [];
       if (utangUsaha > 0) entries.push({ kode: '50.01.00', debit: utangUsaha, kredit: 0 });
       if (utangNonUsaha > 0) entries.push({ kode: '50.02.00', debit: utangNonUsaha, kredit: 0 });
-      const txId = createTx(db, tgl, 'Bayar: ' + uraian, entries, sumberFile);
-      if (txId) results.push({ id: txId, desc: uraian, total: kas });
+      if (kas > 0) entries.push({ kode: '11.01.00', debit: 0, kredit: kas });
+      if (entries.length >= 2) {
+        const txId = createTx(db, tgl, 'Bayar: ' + uraian, entries, sumberFile);
+        if (txId) results.push({ id: txId, desc: uraian, total: kas || utangUsaha });
+      }
     }
   }
   return results;

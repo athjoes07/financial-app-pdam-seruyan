@@ -1,12 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
 const { initDatabase } = require('./database');
 
 async function main() {
   const db = await initDatabase();
   const app = express();
-  const PORT = process.env.PORT || 3001;
 
   app.use(cors());
   app.use(express.json({ limit: '50mb' }));
@@ -25,16 +25,22 @@ async function main() {
     }
   }));
 
-  // Serve Research-Agent-Skills-Collection at /research
   const researchPath = path.join(__dirname, '..', 'Research-Agent-Skills-Collection-main');
   app.use('/research', express.static(researchPath));
 
   app.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'API route not found' });
+    }
     res.sendFile(path.join(distPath, 'index.html'));
   });
 
-  app.listen(PORT, () => {
+  const PORT = 3000;
+
+  const server = http.createServer(app);
+  server.listen(PORT, () => {
     console.log(`Server berjalan di http://localhost:${PORT}`);
+    console.log(`\nPort aktif: ${PORT}`);
     console.log(`API proses input: POST /api/process/input`);
     console.log(`API generate output: POST /api/process/generate`);
     console.log(`API run all: POST /api/process/run-all`);
