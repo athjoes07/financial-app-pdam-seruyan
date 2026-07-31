@@ -23,7 +23,7 @@ function parse(filePath) {
     // Detect header row with GOLONGAN TARIF
     if (flat.some(c => c.toUpperCase().includes('GOLONGAN TARIF'))) {
       inTable = true;
-      headerMap.colGol = 0;
+      headerMap.colGol = flat.findIndex(c => c.toUpperCase().includes('GOLONGAN TARIF'));
       headerMap.colHA = flat.findIndex(c => c.toUpperCase().includes('HARGA AIR'));
       headerMap.colAdm = flat.findIndex(c => c.toUpperCase().includes('JASA ADM'));
       headerMap.colDM = flat.findIndex(c => c.toUpperCase().includes('DANA METER'));
@@ -32,11 +32,13 @@ function parse(filePath) {
     }
 
     if (inTable) {
-      const gol = flat[0];
+      const colGol = headerMap.colGol || 0;
+      const gol = flat[colGol];
       const golUp = gol ? gol.toUpperCase() : '';
-      if (!gol || gol === '' || golUp.includes('JUMLAH') || golUp.includes('JML') || golUp.includes('TOTAL')) {
-        if (gol && (golUp.includes('JUMLAH') || golUp.includes('TOTAL'))) {
-          const total = parseFloat(flat[headerMap.colTotal]?.replace(/[^\d,.-]/g, '').replace(/,/g, '') || '0');
+      if (!gol || gol === '' || golUp.includes('JUMLAH') || golUp.includes('JML') || golUp.includes('TOTAL') || golUp.includes('GRAND TOTAL')) {
+        if (gol && (golUp.includes('JUMLAH') || golUp.includes('TOTAL') || golUp.includes('GRAND TOTAL'))) {
+          const totalVal = headerMap.colTotal >= 0 ? flat[headerMap.colTotal] : '';
+          const total = parseFloat(totalVal?.replace(/[^\d,.-]/g, '').replace(/,/g, '') || '0');
           if (total > 0) {
             rows.push({
               golongan: 'TOTAL',
@@ -50,10 +52,10 @@ function parse(filePath) {
         }
         continue;
       }
-      if (gol.toUpperCase().match(/^(HU|TI|YS|RS|R3|IRT|NK|INST|NB|R1|R2|S|PA|PB|PI|PP|PM|PS|PK)\s/)) {
-        const haStr = flat[headerMap.colHA] || '0';
-        const admStr = flat[headerMap.colAdm] || '0';
-        const dmStr = flat[headerMap.colDM] || '0';
+      if (golUp.match(/^(HU|TI|YS|RS\d?|R3|IRT|NK|INST|NB|R1|R2|S|PA|PB|PI|PP|PM|PS|PK|PEL|INST)\s/)) {
+        const haStr = headerMap.colHA >= 0 ? flat[headerMap.colHA] : '0';
+        const admStr = headerMap.colAdm >= 0 ? flat[headerMap.colAdm] : '0';
+        const dmStr = headerMap.colDM >= 0 ? flat[headerMap.colDM] : '0';
         rows.push({
           golongan: gol.split('-')[0].trim().split(' ')[0],
           bulan: bulan || 'Mei',

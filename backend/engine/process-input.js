@@ -56,6 +56,11 @@ function processInputFiles(db, inputDir) {
       }
 
       if (file.toLowerCase().includes('lpp tgl')) {
+        // REKAP USER is a summary file — data is already in individual loket files
+        if (file.toLowerCase().includes('rekap user') || file.toLowerCase().includes('rekap_user')) {
+          results.files_processed.push('LPP-REKAP: ' + file + ' (rangkuman, tidak diproses ulang)');
+          continue;
+        }
         const parsed = lppParser.parse(filePath);
         results.files_processed.push(parsed.source + ': ' + file);
 
