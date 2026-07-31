@@ -11,7 +11,7 @@ const addTableStyles = (wb) => {
     const ws = wb.Sheets[sheetName];
     if (!ws['!ref']) continue;
     const range = xlsxStyle.utils.decode_range(ws['!ref']);
-    
+
     // Find where the table starts
     let tableStartRow = -1;
     for (let r = range.s.r; r <= Math.min(range.e.r, 15); r++) {
@@ -32,7 +32,7 @@ const addTableStyles = (wb) => {
     }
 
     if (tableStartRow === -1) tableStartRow = 6;
-    
+
     for (let r = range.s.r; r <= range.e.r; r++) {
       // Check if row is a signature block
       let isSignatureRow = false;
@@ -51,40 +51,40 @@ const addTableStyles = (wb) => {
         const addr = xlsxStyle.utils.encode_cell({ r, c });
         if (!ws[addr]) continue;
         if (!ws[addr].s) ws[addr].s = {};
-        
+
         if (r < tableStartRow || isSignatureRow) {
-           ws[addr].s.font = { bold: true, name: 'Arial', sz: 11 };
-           ws[addr].s.border = {}; // No border
-           continue; 
+          ws[addr].s.font = { bold: true, name: 'Arial', sz: 11 };
+          ws[addr].s.border = {}; // No border
+          continue;
         }
-        
+
         if (r >= tableStartRow) {
-           ws[addr].s.border = {
-             top: { style: 'thin', color: { auto: 1 } },
-             bottom: { style: 'thin', color: { auto: 1 } },
-             left: { style: 'thin', color: { auto: 1 } },
-             right: { style: 'thin', color: { auto: 1 } }
-           };
-           ws[addr].s.font = { name: 'Arial', sz: 10 };
-           
-           if (r === tableStartRow) {
-               ws[addr].s.font.bold = true;
-               ws[addr].s.font.color = { rgb: "FFFFFF" };
-               ws[addr].s.fill = { fgColor: { rgb: "4472C4" } };
-               ws[addr].s.alignment = { horizontal: 'center', vertical: 'center' };
-           } else {
-               // Zebra striping
-               if (r % 2 === (tableStartRow % 2 === 0 ? 1 : 0)) {
-                   ws[addr].s.fill = { fgColor: { rgb: "D9E1F2" } }; // Light blue for alternating rows
-               } else {
-                   ws[addr].s.fill = { fgColor: { rgb: "FFFFFF" } }; // White for other rows
-               }
-               
-               // Number formatting for numeric values
-               if (typeof ws[addr].v === 'number') {
-                   ws[addr].z = '#,##0.00';
-               }
-           }
+          ws[addr].s.border = {
+            top: { style: 'thin', color: { auto: 1 } },
+            bottom: { style: 'thin', color: { auto: 1 } },
+            left: { style: 'thin', color: { auto: 1 } },
+            right: { style: 'thin', color: { auto: 1 } }
+          };
+          ws[addr].s.font = { name: 'Arial', sz: 10 };
+
+          if (r === tableStartRow) {
+            ws[addr].s.font.bold = true;
+            ws[addr].s.font.color = { rgb: "FFFFFF" };
+            ws[addr].s.fill = { fgColor: { rgb: "4472C4" } };
+            ws[addr].s.alignment = { horizontal: 'center', vertical: 'center' };
+          } else {
+            // Zebra striping
+            if (r % 2 === (tableStartRow % 2 === 0 ? 1 : 0)) {
+              ws[addr].s.fill = { fgColor: { rgb: "D9E1F2" } }; // Light blue for alternating rows
+            } else {
+              ws[addr].s.fill = { fgColor: { rgb: "FFFFFF" } }; // White for other rows
+            }
+
+            // Number formatting for numeric values
+            if (typeof ws[addr].v === 'number') {
+              ws[addr].z = '#,##0.00';
+            }
+          }
         }
       }
     }
@@ -94,14 +94,17 @@ const addTableStyles = (wb) => {
 function generateAllReports(db, outputDir) {
   const fs = require('fs');
   const path = require('path');
-  
+
+  // Use current year as suffix for report file names
+  const year = new Date().getFullYear();
+
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   } else {
     // Clear old files
     const oldFiles = fs.readdirSync(outputDir);
     for (const f of oldFiles) {
-      if (f.endsWith('.xlsx')) {
+      if (/\.xlsx?$/i.test(f)) {
         fs.unlinkSync(path.join(outputDir, f));
       }
     }
@@ -109,35 +112,35 @@ function generateAllReports(db, outputDir) {
 
   const results = [];
 
+  const jFile = `Journal ${year}.xlsx`;
   try {
-    const jPath = path.join(outputDir, 'JURNAL.xlsx');
-    generateJournal(db, jPath);
-    results.push({ file: 'JURNAL.xlsx', status: 'OK' });
-  } catch (e) { results.push({ file: 'JURNAL.xlsx', status: 'ERROR', error: e.message }); }
+    generateJournal(db, path.join(outputDir, jFile));
+    results.push({ file: jFile, status: 'OK' });
+  } catch (e) { results.push({ file: jFile, status: 'ERROR', error: e.message }); }
 
+  const bbFile = `BUKU BESAR ${year}.xlsx`;
   try {
-    const bbPath = path.join(outputDir, 'BUKU BESAR.xlsx');
-    generateBukuBesar(db, bbPath);
-    results.push({ file: 'BUKU BESAR.xlsx', status: 'OK' });
-  } catch (e) { results.push({ file: 'BUKU BESAR.xlsx', status: 'ERROR', error: e.message }); }
+    generateBukuBesar(db, path.join(outputDir, bbFile));
+    results.push({ file: bbFile, status: 'OK' });
+  } catch (e) { results.push({ file: bbFile, status: 'ERROR', error: e.message }); }
 
+  const nlFile = `Neraca Lajur ${year}.xlsx`;
   try {
-    const nlPath = path.join(outputDir, 'NERACA LAJUR.xlsx');
-    generateNeracaLajur(db, nlPath);
-    results.push({ file: 'NERACA LAJUR.xlsx', status: 'OK' });
-  } catch (e) { results.push({ file: 'NERACA LAJUR.xlsx', status: 'ERROR', error: e.message }); }
+    generateNeracaLajur(db, path.join(outputDir, nlFile));
+    results.push({ file: nlFile, status: 'OK' });
+  } catch (e) { results.push({ file: nlFile, status: 'ERROR', error: e.message }); }
 
+  const fsFile = `Neraca, RL, Arus Kas, ${year}.xlsx`;
   try {
-    const fsPath = path.join(outputDir, 'LAPORAN KEUANGAN.xlsx');
-    generateFinancialStatements(db, fsPath);
-    results.push({ file: 'LAPORAN KEUANGAN.xlsx', status: 'OK' });
-  } catch (e) { results.push({ file: 'LAPORAN KEUANGAN.xlsx', status: 'ERROR', error: e.message }); }
+    generateFinancialStatements(db, path.join(outputDir, fsFile));
+    results.push({ file: fsFile, status: 'OK' });
+  } catch (e) { results.push({ file: fsFile, status: 'ERROR', error: e.message }); }
 
+  const atFile = `AUDIT_TRAIL.xlsx`;
   try {
-    const atPath = path.join(outputDir, 'AUDIT TRAIL.xlsx');
-    generateAuditTrail(db, atPath);
-    results.push({ file: 'AUDIT TRAIL.xlsx', status: 'OK' });
-  } catch (e) { results.push({ file: 'AUDIT TRAIL.xlsx', status: 'ERROR', error: e.message }); }
+    generateAuditTrail(db, path.join(outputDir, atFile));
+    results.push({ file: atFile, status: 'OK' });
+  } catch (e) { results.push({ file: atFile, status: 'ERROR', error: e.message }); }
 
   return results;
 }

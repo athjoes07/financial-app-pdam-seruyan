@@ -6,7 +6,7 @@ const { bulkImport } = require('../engine/bulk-import');
 const { generateAllReports } = require('../report-generators');
 const { initDatabase } = require('../database');
 
-module.exports = function(db) {
+module.exports = function (db) {
   const router = express.Router();
   const isServerless = process.env.K_SERVICE || process.env.VERCEL;
   const baseDir = isServerless ? '/tmp' : path.join(__dirname, '..', '..');
@@ -22,7 +22,7 @@ module.exports = function(db) {
       const fname = decodeURIComponent(req.params.filename);
       const filePath = path.join(inputDir, fname);
       const trashPath = path.join(inputTrashDir, fname);
-      
+
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ error: 'File tidak ditemukan' });
       }
@@ -30,7 +30,7 @@ module.exports = function(db) {
       const stat = fs.statSync(filePath);
       const fileDate = new Date(stat.mtime).toISOString().split('T')[0];
       const today = new Date().toISOString().split('T')[0];
-      
+
       // Move to trash
       fs.renameSync(filePath, trashPath);
 
@@ -50,7 +50,7 @@ module.exports = function(db) {
       db.queryRun('DELETE FROM transaksi WHERE sumber = ?', [fname]);
       // Also clean up any remaining orphan journal entries just in case
       db.queryRun('DELETE FROM jurnal WHERE transaksi_id NOT IN (SELECT id FROM transaksi)');
-      
+
       if (typeof db.insertAuditLog === 'function' && beforeTxs.length > 0) {
         db.insertAuditLog('DELETE', fname, 'Hapus Data ' + fname, 'SUCCESS', 'Dihapus ' + beforeTxs.length + ' transaksi', beforeState, null);
       }
@@ -83,11 +83,11 @@ module.exports = function(db) {
       const fname = decodeURIComponent(req.params.filename);
       const trashPath = path.join(inputTrashDir, fname);
       const inputPath = path.join(inputDir, fname);
-      
+
       if (!fs.existsSync(trashPath)) {
         return res.status(404).json({ error: 'File tidak ditemukan di tempat sampah' });
       }
-      
+
       if (!fs.existsSync(inputDir)) {
         fs.mkdirSync(inputDir, { recursive: true });
       }
@@ -182,7 +182,7 @@ module.exports = function(db) {
       const PdfPrinter = require('pdfmake');
       const XLSX = require('xlsx-js-style');
       const fname = decodeURIComponent(req.params.filename);
-      
+
       let filePath = path.join(outputDir, fname);
       if (!fs.existsSync(filePath)) {
         filePath = path.join(sampleOutputDir, fname);
@@ -225,7 +225,7 @@ module.exports = function(db) {
             let displayText = '';
             if (cell !== null && cell !== undefined && cell !== '') {
               if (typeof cell === 'number') {
-                displayText = Number.isInteger(cell) ? 
+                displayText = Number.isInteger(cell) ?
                   new Intl.NumberFormat('id-ID').format(cell) :
                   new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cell);
               } else {
@@ -330,13 +330,13 @@ module.exports = function(db) {
     try {
       const result1 = processInputFiles(db, inputDir);
       const result2 = bulkImport(db, inputDir);
-      
+
       const combined = {
         files_processed: [...result1.files_processed, ...result2.files_processed],
         transactions: [...result1.transactions, ...result2.transactions],
         errors: [...result1.errors, ...result2.errors]
       };
-      
+
       res.json(combined);
     } catch (err) {
       res.status(500).json({ error: err.message });

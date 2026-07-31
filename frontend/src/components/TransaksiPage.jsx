@@ -187,37 +187,76 @@ export default function TransaksiPage({ initialSearch = '' }) {
             <table className="table-modern">
               <thead>
                 <tr>
-                  <th>Tanggal</th>
+                  <th style={{ width: '110px' }}>Tanggal</th>
                   <th>Deskripsi</th>
-                  <th className="hide-mobile">Rincian</th>
-                  <th className="text-right">Jumlah</th>
-                  <th className="text-center">Aksi</th>
+                  <th className="hide-mobile">Akun</th>
+                  <th className="hide-mobile text-right" style={{ color: 'var(--info)', width: '140px' }}>Debit</th>
+                  <th className="hide-mobile text-right" style={{ color: 'var(--danger)', width: '140px' }}>Kredit</th>
+                  <th className="text-right" style={{ width: '130px' }}>Jumlah</th>
+                  <th className="text-center" style={{ width: '60px' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTransaksi.map(t => {
                   const total = t.jurnal?.reduce((s, j) => s + (parseFloat(j.debit) || 0), 0) || 0
+                  const rowCount = t.jurnal?.length || 1
                   return (
                     <tr key={t.id}>
-                      <td className="font-mono">{t.tanggal}</td>
-                      <td style={{ fontWeight: 500 }}>{t.deskripsi}</td>
-                      <td className="hide-mobile">
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
-                          {t.jurnal?.map((j, idx) => (
-                            <div key={idx} style={{ fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
-                              <span><strong>{j.kode}</strong> - {j.akun_nama}</span>
-                              <span className="font-mono" style={{ whiteSpace: 'nowrap' }}>
-                                {j.debit > 0 && <span style={{ color: 'var(--info)', fontWeight: 600 }}>D: {formatRupiah(j.debit)}</span>}
-                                {j.kredit > 0 && <span style={{ color: 'var(--danger)', fontWeight: 600 }}>K: {formatRupiah(j.kredit)}</span>}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
+                      <td className="font-mono" rowSpan={1} style={{ verticalAlign: 'top', paddingTop: '0.6rem' }}>
+                        {t.tanggal}
                       </td>
-                      <td className="text-right font-mono font-bold">
+                      <td style={{ fontWeight: 500, verticalAlign: 'top', paddingTop: '0.6rem' }}>
+                        {t.deskripsi}
+                      </td>
+                      {/* Akun, Debit, Kredit as sub-rows inside a single cell */}
+                      <td className="hide-mobile" style={{ padding: 0 }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                          <tbody>
+                            {t.jurnal?.map((j, idx) => (
+                              <tr key={idx} style={{ borderBottom: idx < rowCount - 1 ? '1px dashed var(--border)' : 'none' }}>
+                                <td style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>
+                                  <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>{j.kode}</span>
+                                  {' '}{j.akun_nama}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </td>
+                      <td className="hide-mobile" style={{ padding: 0, verticalAlign: 'top' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                          <tbody>
+                            {t.jurnal?.map((j, idx) => (
+                              <tr key={idx} style={{ borderBottom: idx < rowCount - 1 ? '1px dashed var(--border)' : 'none' }}>
+                                <td style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', textAlign: 'right', fontFamily: 'monospace' }}>
+                                  {parseFloat(j.debit) > 0
+                                    ? <span style={{ color: 'var(--info)', fontWeight: 600 }}>{formatRupiah(j.debit)}</span>
+                                    : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </td>
+                      <td className="hide-mobile" style={{ padding: 0, verticalAlign: 'top' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                          <tbody>
+                            {t.jurnal?.map((j, idx) => (
+                              <tr key={idx} style={{ borderBottom: idx < rowCount - 1 ? '1px dashed var(--border)' : 'none' }}>
+                                <td style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', textAlign: 'right', fontFamily: 'monospace' }}>
+                                  {parseFloat(j.kredit) > 0
+                                    ? <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{formatRupiah(j.kredit)}</span>
+                                    : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </td>
+                      <td className="text-right font-mono font-bold" style={{ verticalAlign: 'top', paddingTop: '0.6rem' }}>
                         Rp {formatRupiah(total)}
                       </td>
-                      <td className="text-center">
+                      <td className="text-center" style={{ verticalAlign: 'top', paddingTop: '0.5rem' }}>
                         <button className="btn btn-danger btn-sm" onClick={() => handleDelete(t.id)}>
                           🗑
                         </button>
@@ -228,6 +267,7 @@ export default function TransaksiPage({ initialSearch = '' }) {
               </tbody>
             </table>
           </div>
+
         ) : (
           <div className="empty-state">
             <div className="empty-state-icon">📭</div>
