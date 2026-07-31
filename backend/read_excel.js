@@ -37,7 +37,7 @@ function dumpFile(filePath) {
   }
 }
 
-const inputDir = path.join(__dirname, '..', 'input');
+const inputDir = path.join(__dirname, '..', 'penyimpanan');
 const outputDir = path.join(__dirname, '..', 'output');
 
 if (fs.existsSync(inputDir)) {

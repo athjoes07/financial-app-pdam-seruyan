@@ -10,8 +10,8 @@ module.exports = function(db) {
   const router = express.Router();
   const isServerless = process.env.K_SERVICE || process.env.VERCEL;
   const baseDir = isServerless ? '/tmp' : path.join(__dirname, '..', '..');
-  const inputDir = isServerless ? '/tmp' : path.join(baseDir, 'input');
-  const inputTrashDir = isServerless ? '/tmp/trash' : path.join(baseDir, 'input-trash');
+  const inputDir = isServerless ? '/tmp' : path.join(baseDir, 'penyimpanan');
+  const inputTrashDir = isServerless ? '/tmp/trash' : path.join(baseDir, 'penyimpanan-trash');
   const outputDir = isServerless ? '/tmp' : path.join(baseDir, 'output-app');
   const sampleOutputDir = isServerless ? '/tmp' : path.join(baseDir, 'output');
 
@@ -448,6 +448,10 @@ module.exports = function(db) {
       const { files } = req.body; // Array of { filename, contentBase64 }
       if (!Array.isArray(files) || files.length === 0) {
         return res.status(400).json({ error: 'Tidak ada file yang dikirim' });
+      }
+
+      if (!fs.existsSync(inputDir)) {
+        fs.mkdirSync(inputDir, { recursive: true });
       }
 
       const results = [];
