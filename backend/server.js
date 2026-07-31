@@ -48,12 +48,34 @@ if (!process.env.VERCEL) {
   main().then(app => {
     const PORT = process.env.PORT || 3000;
     const server = http.createServer(app);
-    server.listen(PORT, () => {
-      console.log(`Server berjalan di http://localhost:${PORT}`);
-      console.log(`\nPort aktif: ${PORT}`);
-      console.log(`API proses input: POST /api/process/input`);
-      console.log(`API generate output: POST /api/process/generate`);
-      console.log(`API run all: POST /api/process/run-all`);
+    
+    // Listen on all interfaces (0.0.0.0) so other devices on same network can connect
+    server.listen(PORT, '0.0.0.0', () => {
+      const os = require('os');
+      
+      // Get local IP addresses
+      const nets = os.networkInterfaces();
+      const localIPs = [];
+      for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+          // Only show IPv4 and non-internal
+          if (net.family === 'IPv4' && !net.internal) {
+            localIPs.push(net.address);
+          }
+        }
+      }
+      
+      console.log('\n====================================================');
+      console.log('  🚀  SERVER KEUANGAN PDAM SERUYAN AKTIF');
+      console.log('====================================================');
+      console.log(`  ✅  Lokal     : http://localhost:${PORT}`);
+      for (const ip of localIPs) {
+        console.log(`  🌐  Jaringan  : http://${ip}:${PORT}  ← akses dari HP/tablet`);
+      }
+      console.log('====================================================');
+      console.log('  Semua perangkat di jaringan Wi-Fi/LAN yang sama');
+      console.log('  dapat mengakses aplikasi lewat URL Jaringan di atas.');
+      console.log('====================================================\n');
     });
   }).catch(err => {
     console.error('Gagal menjalankan server:', err);
