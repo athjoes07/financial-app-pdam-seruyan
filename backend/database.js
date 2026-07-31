@@ -39,7 +39,7 @@ function run(sql, params = []) {
 
 async function initDatabase() {
   const SQL = await initSqlJs({
-    locateFile: file => path.join(__dirname, 'node_modules', 'sql.js', 'dist', file)
+    locateFile: file => path.join(__dirname, '..', 'node_modules', 'sql.js', 'dist', file)
   });
 
   if (fs.existsSync(DB_PATH)) {
