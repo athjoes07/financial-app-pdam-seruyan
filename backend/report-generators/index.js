@@ -69,8 +69,17 @@ const addTableStyles = (wb) => {
            
            if (r === tableStartRow) {
                ws[addr].s.font.bold = true;
+               ws[addr].s.font.color = { rgb: "FFFFFF" };
+               ws[addr].s.fill = { fgColor: { rgb: "4472C4" } };
                ws[addr].s.alignment = { horizontal: 'center', vertical: 'center' };
            } else {
+               // Zebra striping
+               if (r % 2 === (tableStartRow % 2 === 0 ? 1 : 0)) {
+                   ws[addr].s.fill = { fgColor: { rgb: "D9E1F2" } }; // Light blue for alternating rows
+               } else {
+                   ws[addr].s.fill = { fgColor: { rgb: "FFFFFF" } }; // White for other rows
+               }
+               
                // Number formatting for numeric values
                if (typeof ws[addr].v === 'number') {
                    ws[addr].z = '#,##0.00';

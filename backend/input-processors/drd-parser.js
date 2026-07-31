@@ -36,7 +36,7 @@ function parse(filePath) {
       const golUp = gol ? gol.toUpperCase() : '';
       if (!gol || gol === '' || golUp.includes('JUMLAH') || golUp.includes('JML') || golUp.includes('TOTAL')) {
         if (gol && (golUp.includes('JUMLAH') || golUp.includes('TOTAL'))) {
-          const total = parseFloat(flat[headerMap.colTotal]?.replace(/[^\d,.-]/g, '').replace(',', '') || '0');
+          const total = parseFloat(flat[headerMap.colTotal]?.replace(/[^\d,.-]/g, '').replace(/,/g, '') || '0');
           if (total > 0) {
             rows.push({
               golongan: 'TOTAL',
@@ -57,9 +57,9 @@ function parse(filePath) {
         rows.push({
           golongan: gol.split('-')[0].trim().split(' ')[0],
           bulan: bulan || 'Mei',
-          ha: parseFloat(haStr.replace(/[^\d,.-]/g, '').replace(',', '')) || 0,
-          adm: parseFloat(admStr.replace(/[^\d,.-]/g, '').replace(',', '')) || 0,
-          dm: parseFloat(dmStr.replace(/[^\d,.-]/g, '').replace(',', '')) || 0,
+          ha: parseFloat(haStr.replace(/[^\d,.-]/g, '').replace(/,/g, '')) || 0,
+          adm: parseFloat(admStr.replace(/[^\d,.-]/g, '').replace(/,/g, '')) || 0,
+          dm: parseFloat(dmStr.replace(/[^\d,.-]/g, '').replace(/,/g, '')) || 0,
           is_total: false
         });
       }

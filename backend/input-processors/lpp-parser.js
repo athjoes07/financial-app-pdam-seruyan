@@ -31,9 +31,9 @@ function parse(filePath) {
         const str = String(v).trim();
         if (str === '') return false;
         if (str.toUpperCase().includes('TOTAL') || str.toUpperCase().includes('JUMLAH')) return false;
-        const n = parseFloat(str.replace(/[^\d,.-]/g, '').replace(',', ''));
+        const n = parseFloat(str.replace(/[^\d,.-]/g, '').replace(/,/g, ''));
         return !isNaN(n);
-      }).map(v => parseFloat(String(v).replace(/[^\d,.-]/g, '').replace(',', '')));
+      }).map(v => parseFloat(String(v).replace(/[^\d,.-]/g, '').replace(/,/g, '')));
       
       // If we found at least 8 numbers, we can assume it's the total row of LPP
       // Typical nums from right to left: 
