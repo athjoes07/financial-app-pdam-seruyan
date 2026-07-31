@@ -1,4 +1,4 @@
-const XLSX = require('xlsx');
+const XLSX = require('xlsx-js-style');
 
 const MONTHS = [
   { name: 'JANUARI', days: 31, endStr: '31 JANUARI 2026', nextMonth: null },
@@ -81,6 +81,8 @@ function generateNeracaLajur(db, outputPath) {
     XLSX.utils.book_append_sheet(wb, sheet, 'NERCA LAJUR ' + MONTHS[i].name);
   }
 
+  const { addTableStyles } = require('./index');
+  if (typeof addTableStyles === 'function') addTableStyles(wb);
   XLSX.writeFile(wb, outputPath, { compression: true, bookType: 'xlsx' });
   return outputPath;
 }

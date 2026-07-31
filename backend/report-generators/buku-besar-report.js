@@ -1,4 +1,4 @@
-const XLSX = require('xlsx');
+const XLSX = require('xlsx-js-style');
 
 function formatDate(tanggal) {
   if (!tanggal) return '';
@@ -177,6 +177,8 @@ function generateBukuBesar(db, outputPath) {
     XLSX.utils.book_append_sheet(wb, sheet, group.sheetName);
   }
 
+  const { addTableStyles } = require('./index');
+  if (typeof addTableStyles === 'function') addTableStyles(wb);
   XLSX.writeFile(wb, outputPath, { compression: true, bookType: 'xlsx' });
   return outputPath;
 }

@@ -1,4 +1,4 @@
-const XLSX = require('xlsx');
+const XLSX = require('xlsx-js-style');
 
 function generateAuditTrail(db, outputPath) {
   const wb = XLSX.utils.book_new();
@@ -167,6 +167,8 @@ function generateAuditTrail(db, outputPath) {
   ringkasanSheet['!cols'] = [{ wch: 30 }, { wch: 50 }];
   XLSX.utils.book_append_sheet(wb, ringkasanSheet, 'Ringkasan');
 
+  const { addTableStyles } = require('./index');
+  if (typeof addTableStyles === 'function') addTableStyles(wb);
   XLSX.writeFile(wb, outputPath, { compression: true, bookType: 'xlsx' });
   return outputPath;
 }

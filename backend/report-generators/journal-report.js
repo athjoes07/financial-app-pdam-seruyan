@@ -1,4 +1,4 @@
-const XLSX = require('xlsx');
+const XLSX = require('xlsx-js-style');
 
 function formatDate(tanggal) {
   if (!tanggal) return '';
@@ -744,6 +744,8 @@ function generateJournal(db, outputPath) {
   jrnaSheet['!cols'] = [{ wch: 15 }, { wch: 12 }, { wch: 35 }, { wch: 5 }, { wch: 8 }, { wch: 18 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(wb, jrnaSheet, 'JRNA');
 
+  const { addTableStyles } = require('./index');
+  if (typeof addTableStyles === 'function') addTableStyles(wb);
   XLSX.writeFile(wb, outputPath, { compression: true, bookType: 'xlsx' });
   return outputPath;
 }

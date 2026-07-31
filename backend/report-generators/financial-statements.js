@@ -1,4 +1,4 @@
-const XLSX = require('xlsx');
+const XLSX = require('xlsx-js-style');
 
 const MONTHS = [
   { name: 'JANUARI', short: 'JAN', endDay: '31' },
@@ -684,6 +684,8 @@ function generateFinancialStatements(db, outputPath) {
   const lama2Sheet = XLSX.utils.aoa_to_sheet(lama2Data);
   XLSX.utils.book_append_sheet(wb, lama2Sheet, 'lama2');
 
+  const { addTableStyles } = require('./index');
+  if (typeof addTableStyles === 'function') addTableStyles(wb);
   XLSX.writeFile(wb, outputPath, { compression: true, bookType: 'xlsx' });
   return outputPath;
 }

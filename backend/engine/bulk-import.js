@@ -1,13 +1,13 @@
 const fs = require('fs');
 const path = require('path');
-const XLSX = require('xlsx');
+const XLSX = require('xlsx-js-style');
 
 function excelDateToISO(val) {
   if (val === null || val === undefined || val === '') return '2026-01-01';
   if (typeof val === 'number') {
     const d = XLSX.SSF.parse_date_code(val);
     if (d) {
-      const y = d.y || 2026;
+      const y = d.y || new Date().getFullYear();
       const m = String(d.m || 1).padStart(2, '0');
       const dd = String(d.d || 1).padStart(2, '0');
       return y + '-' + m + '-' + dd;
@@ -20,14 +20,14 @@ function excelDateToISO(val) {
   if (m) {
     const dd = String(m[1]).padStart(2, '0');
     const mon = monthMap[m[2].substring(0, 3).toLowerCase()] || '01';
-    return '2026-' + mon + '-' + dd;
+    return new Date().getFullYear() + '-' + mon + '-' + dd;
   }
-  return '2026-01-01';
+  return new Date().getFullYear() + '-01-01';
 }
 
 function createTx(db, tanggal, deskripsi, entries, sumber = '') {
   if (!entries || entries.length === 0) return null;
-  db.run('INSERT INTO transaksi (tanggal, deskripsi, sumber) VALUES (?, ?, ?)', [tanggal, deskripsi, sumber]);
+  db.queryRun('INSERT INTO transaksi (tanggal, deskripsi, sumber) VALUES (?, ?, ?)', [tanggal, deskripsi, sumber]);
   const result = db.queryOne('SELECT MAX(id) as id FROM transaksi');
   const tId = result.id;
   
@@ -38,7 +38,7 @@ function createTx(db, tanggal, deskripsi, entries, sumber = '') {
     if (!e.kode || (!e.debit && !e.kredit)) continue;
     const akun = db.queryOne('SELECT id FROM akun WHERE kode = ?', [e.kode]);
     if (akun) {
-      db.run('INSERT INTO jurnal (transaksi_id, akun_id, debit, kredit) VALUES (?, ?, ?, ?)', [tId, akun.id, e.debit || 0, e.kredit || 0]);
+      db.queryRun('INSERT INTO jurnal (transaksi_id, akun_id, debit, kredit) VALUES (?, ?, ?, ?)', [tId, akun.id, e.debit || 0, e.kredit || 0]);
       totalDebit += e.debit || 0;
       totalKredit += e.kredit || 0;
     }
@@ -227,7 +227,7 @@ function bulkImport(db, inputDir) {
         const total = parseAksesories(db, filePath, file);
         results.files_processed.push('Aksesories: ' + file + ' (nilai Rp ' + total.toLocaleString() + ')');
         if (total > 0) {
-          const txId = createTx(db, '2026-01-01', 'Persediaan Bahan Instalasi (Asesoris & Water Meter)', [
+          const txId = createTx(db, new Date().getFullYear() + '-01-01', 'Persediaan Bahan Instalasi (Asesoris & Water Meter)', [
             { kode: '15.03.00', debit: total, kredit: 0 },
             { kode: '71.01.00', debit: 0, kredit: total }
           ], file);
@@ -237,7 +237,7 @@ function bulkImport(db, inputDir) {
         const data = parsePersediaanKimia(filePath);
         results.files_processed.push('PersediaanKimia: ' + file);
         if (data.total > 0) {
-          const txId = createTx(db, '2026-01-01', 'Persediaan Bahan Kimia & BBM', [
+          const txId = createTx(db, new Date().getFullYear() + '-01-01', 'Persediaan Bahan Kimia & BBM', [
             { kode: '15.01.00', debit: data.total, kredit: 0 },
             { kode: '71.01.00', debit: 0, kredit: data.total }
           ], file);

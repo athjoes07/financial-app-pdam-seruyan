@@ -180,7 +180,7 @@ module.exports = function(db) {
   router.get('/download-pdf/:filename', async (req, res) => {
     try {
       const PdfPrinter = require('pdfmake');
-      const XLSX = require('xlsx');
+      const XLSX = require('xlsx-js-style');
       const fname = decodeURIComponent(req.params.filename);
       
       let filePath = path.join(outputDir, fname);
@@ -382,7 +382,7 @@ module.exports = function(db) {
   // Preview Excel file content (all sheets, first N rows)
   router.get('/preview/:source/:filename', (req, res) => {
     try {
-      const XLSX = require('xlsx');
+      const XLSX = require('xlsx-js-style');
       const fname = decodeURIComponent(req.params.filename);
       const source = req.params.source; // 'input' or 'output'
       const maxRows = parseInt(req.query.rows) || 50;

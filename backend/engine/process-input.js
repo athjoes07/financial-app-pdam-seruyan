@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const XLSX = require('xlsx');
+const XLSX = require('xlsx-js-style');
 
 const drdParser = require('../input-processors/drd-parser');
 const lppParser = require('../input-processors/lpp-parser');
@@ -93,7 +93,7 @@ function processInputFiles(db, inputDir) {
 
 function createTx(db, tanggal, deskripsi, entries, sumber = '') {
   if (!entries || entries.length === 0) return null;
-  db.run('INSERT INTO transaksi (tanggal, deskripsi, sumber) VALUES (?, ?, ?)', [tanggal, deskripsi, sumber]);
+  db.queryRun('INSERT INTO transaksi (tanggal, deskripsi, sumber) VALUES (?, ?, ?)', [tanggal, deskripsi, sumber]);
   const result = db.queryOne('SELECT MAX(id) as id FROM transaksi');
   const tId = result.id;
 
@@ -103,7 +103,7 @@ function createTx(db, tanggal, deskripsi, entries, sumber = '') {
   for (const e of entries) {
     const akun = db.queryOne('SELECT id FROM akun WHERE kode = ?', [e.kode]);
     if (akun) {
-      db.run('INSERT INTO jurnal (transaksi_id, akun_id, debit, kredit) VALUES (?, ?, ?, ?)', [
+      db.queryRun('INSERT INTO jurnal (transaksi_id, akun_id, debit, kredit) VALUES (?, ?, ?, ?)', [
         tId, akun.id, e.debit, e.kredit
       ]);
       totalDebit += e.debit || 0;
