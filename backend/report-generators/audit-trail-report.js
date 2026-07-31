@@ -12,14 +12,38 @@ function generateAuditTrail(db, outputPath) {
   inputFileMap.push(['']);
   inputFileMap.push(['No', 'File Input', 'Sheet Name', 'Baris (Row)', 'Kolom (Col)', 'Data Diekstrak', 'Tujuan (add_tx / Output)', 'Status']);
 
-  const inputFiles = db.queryAll('SELECT DISTINCT sumber FROM transaksi WHERE sumber != "" ORDER BY sumber');
+  const fs = require('fs');
+  const path = require('path');
+  const inputDir = path.join(path.dirname(outputPath), '..');
+  let physicalFiles = [];
+  try {
+    physicalFiles = fs.readdirSync(inputDir).filter(f => /\.(xls|xlsx)$/i.test(f) && !f.startsWith('~$'));
+  } catch(e) {}
+
+  const dbInputFiles = db.queryAll('SELECT DISTINCT sumber FROM transaksi WHERE sumber != "" ORDER BY sumber');
+  const dbFilesMap = {};
+  dbInputFiles.forEach(f => dbFilesMap[f.sumber] = true);
+
+  const allFiles = new Set([...physicalFiles, ...Object.keys(dbFilesMap)]);
+  const sortedFiles = Array.from(allFiles).sort();
+
   let no = 1;
-  for (const f of inputFiles) {
-    const txCount = db.queryOne('SELECT COUNT(*) as cnt FROM transaksi WHERE sumber = ?', [f.sumber]);
-    inputFileMap.push([no++, f.sumber, 'Sheet0', 'Semua baris', '-', '-', 'Input ke DB', 'TERPROSES']);
+  let processedCount = 0;
+  for (const f of sortedFiles) {
+    if (dbFilesMap[f]) {
+      const txCount = db.queryOne('SELECT COUNT(*) as cnt FROM transaksi WHERE sumber = ?', [f]);
+      inputFileMap.push([no++, f, 'Sheet0', 'Semua baris', '-', '-', 'Input ke DB', 'TERPROSES']);
+      processedCount++;
+    } else {
+      let alasan = 'TIDAK DIPROSES';
+      if (f.toLowerCase().includes('rekap user') || f.toLowerCase().includes('rekap_user')) {
+        alasan = 'TIDAK DIPROSES (File rangkuman, duplikat dengan loket)';
+      }
+      inputFileMap.push([no++, f, '-', '-', '-', '-', 'Di-skip', alasan]);
+    }
   }
   inputFileMap.push(['', '', '', '', '', '', '', '']);
-  inputFileMap.push(['TOTAL FILE INPUT', inputFiles.length + ' file', '', '', '', '', '', '']);
+  inputFileMap.push(['TOTAL FILE INPUT', sortedFiles.length + ' file (' + processedCount + ' diproses)', '', '', '', '', '', '']);
 
   const inputFileSheet = XLSX.utils.aoa_to_sheet(inputFileMap);
   inputFileSheet['!cols'] = [{ wch: 5 }, { wch: 35 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 35 }, { wch: 35 }, { wch: 15 }];
