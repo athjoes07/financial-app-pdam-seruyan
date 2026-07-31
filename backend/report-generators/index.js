@@ -70,6 +70,11 @@ const addTableStyles = (wb) => {
            if (r === tableStartRow) {
                ws[addr].s.font.bold = true;
                ws[addr].s.alignment = { horizontal: 'center', vertical: 'center' };
+           } else {
+               // Number formatting for numeric values
+               if (typeof ws[addr].v === 'number') {
+                   ws[addr].z = '#,##0.00';
+               }
            }
         }
       }

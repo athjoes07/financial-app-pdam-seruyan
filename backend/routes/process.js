@@ -328,8 +328,16 @@ module.exports = function(db) {
 
   router.post('/input', async (req, res) => {
     try {
-      const result = processInputFiles(db, inputDir);
-      res.json(result);
+      const result1 = processInputFiles(db, inputDir);
+      const result2 = bulkImport(db, inputDir);
+      
+      const combined = {
+        files_processed: [...result1.files_processed, ...result2.files_processed],
+        transactions: [...result1.transactions, ...result2.transactions],
+        errors: [...result1.errors, ...result2.errors]
+      };
+      
+      res.json(combined);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
