@@ -1,4 +1,4 @@
-const XLSX = require('xlsx');
+const XLSX = require('xlsx-js-style');
 
 function parse(filePath) {
   const wb = XLSX.readFile(filePath, { raw: false });
