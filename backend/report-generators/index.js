@@ -6,26 +6,71 @@ const { generateFinancialStatements } = require('./financial-statements');
 const { generateAuditTrail } = require('./audit-trail-report');
 
 const addTableStyles = (wb) => {
-  // Basic table styling for xlsx-js-style
+  const xlsxStyle = require('xlsx-js-style');
   for (const sheetName of wb.SheetNames) {
     const ws = wb.Sheets[sheetName];
     if (!ws['!ref']) continue;
-    const range = require('xlsx-js-style').utils.decode_range(ws['!ref']);
-    for (let r = range.s.r; r <= range.e.r; r++) {
+    const range = xlsxStyle.utils.decode_range(ws['!ref']);
+    
+    // Find where the table starts
+    let tableStartRow = -1;
+    for (let r = range.s.r; r <= Math.min(range.e.r, 15); r++) {
+      let isHeaderRow = false;
       for (let c = range.s.c; c <= range.e.c; c++) {
-        const addr = require('xlsx-js-style').utils.encode_cell({ r, c });
+        const addr = xlsxStyle.utils.encode_cell({ r, c });
+        const cell = ws[addr];
+        if (cell && cell.v) {
+          const v = String(cell.v).toUpperCase().trim();
+          if (['NO', 'TGL', 'NOMOR DRD', 'VOUCHER', 'NO.', 'KODE', 'KETERANGAN', 'URAIAN', 'NAMA PELANGGAN'].includes(v)) {
+            tableStartRow = r;
+            isHeaderRow = true;
+            break;
+          }
+        }
+      }
+      if (isHeaderRow) break;
+    }
+
+    if (tableStartRow === -1) tableStartRow = 6;
+    
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      // Check if row is a signature block
+      let isSignatureRow = false;
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const addr = xlsxStyle.utils.encode_cell({ r, c });
+        if (ws[addr] && ws[addr].v && typeof ws[addr].v === 'string') {
+          const v = ws[addr].v;
+          if (v.includes('Kuala Pembuang') || v.includes('Kasi.') || v.includes('TRI MURTIANI') || v.includes('Direktur')) {
+            isSignatureRow = true;
+            break;
+          }
+        }
+      }
+
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const addr = xlsxStyle.utils.encode_cell({ r, c });
         if (!ws[addr]) continue;
         if (!ws[addr].s) ws[addr].s = {};
         
-        ws[addr].s.border = {
-          top: { style: 'thin', color: { auto: 1 } },
-          bottom: { style: 'thin', color: { auto: 1 } },
-          left: { style: 'thin', color: { auto: 1 } },
-          right: { style: 'thin', color: { auto: 1 } }
-        };
+        if (r < tableStartRow || isSignatureRow) {
+           ws[addr].s.font = { bold: true, name: 'Arial', sz: 11 };
+           ws[addr].s.border = {}; // No border
+           continue; 
+        }
         
-        if (r < 8) { // Assuming top 8 rows are headers/titles
-          ws[addr].s.font = { bold: true };
+        if (r >= tableStartRow) {
+           ws[addr].s.border = {
+             top: { style: 'thin', color: { auto: 1 } },
+             bottom: { style: 'thin', color: { auto: 1 } },
+             left: { style: 'thin', color: { auto: 1 } },
+             right: { style: 'thin', color: { auto: 1 } }
+           };
+           ws[addr].s.font = { name: 'Arial', sz: 10 };
+           
+           if (r === tableStartRow) {
+               ws[addr].s.font.bold = true;
+               ws[addr].s.alignment = { horizontal: 'center', vertical: 'center' };
+           }
         }
       }
     }
