@@ -189,13 +189,9 @@ export default function TransaksiPage({ initialSearch = '' }) {
                 <tr>
                   <th style={{ width: '110px' }}>Tanggal</th>
                   <th style={{ width: '220px' }}>Deskripsi</th>
-                  <th className="hide-mobile">
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 130px', gap: '0.5rem', fontSize: '0.78rem' }}>
-                      <span>Akun</span>
-                      <span style={{ textAlign: 'right', color: 'var(--info)' }}>Debit</span>
-                      <span style={{ textAlign: 'right', color: 'var(--danger)' }}>Kredit</span>
-                    </div>
-                  </th>
+                  <th className="hide-mobile">Akun</th>
+                  <th className="hide-mobile text-right" style={{ color: 'var(--info)', width: '130px' }}>Debit</th>
+                  <th className="hide-mobile text-right" style={{ color: 'var(--danger)', width: '130px' }}>Kredit</th>
                   <th className="text-right" style={{ width: '130px' }}>Jumlah</th>
                   <th className="text-center" style={{ width: '60px' }}>Aksi</th>
                 </tr>
@@ -212,29 +208,49 @@ export default function TransaksiPage({ initialSearch = '' }) {
                       <td style={{ fontWeight: 500, verticalAlign: 'top', paddingTop: '0.6rem' }}>
                         {t.deskripsi}
                       </td>
-                      <td className="hide-mobile" style={{ padding: '0.25rem 0.75rem' }}>
-                        {t.jurnal?.map((j, idx) => (
-                          <div key={idx} style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 130px 130px',
-                            gap: '0.5rem',
-                            alignItems: 'center',
-                            fontSize: '0.8rem',
-                            padding: '0.25rem 0',
-                            borderBottom: idx < rowCount - 1 ? '1px dashed var(--border)' : 'none'
-                          }}>
-                            <span>
-                              <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.75rem' }}>{j.kode}</span>
-                              {' '}{j.akun_nama}
-                            </span>
-                            <span style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: parseFloat(j.debit) > 0 ? 'var(--info)' : 'var(--text-muted)' }}>
-                              {parseFloat(j.debit) > 0 ? formatRupiah(j.debit) : '-'}
-                            </span>
-                            <span style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: parseFloat(j.kredit) > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>
-                              {parseFloat(j.kredit) > 0 ? formatRupiah(j.kredit) : '-'}
-                            </span>
-                          </div>
-                        ))}
+                      <td className="hide-mobile" style={{ padding: 0 }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'transparent' }}>
+                          <tbody>
+                            {t.jurnal?.map((j, idx) => (
+                              <tr key={idx} style={{ borderBottom: idx < rowCount - 1 ? '1px dashed var(--border)' : 'none' }}>
+                                <td style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>
+                                  <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>{j.kode}</span>
+                                  {' '}{j.akun_nama}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </td>
+                      <td className="hide-mobile" style={{ padding: 0, verticalAlign: 'top' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'transparent' }}>
+                          <tbody>
+                            {t.jurnal?.map((j, idx) => (
+                              <tr key={idx} style={{ borderBottom: idx < rowCount - 1 ? '1px dashed var(--border)' : 'none' }}>
+                                <td style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', textAlign: 'right', fontFamily: 'monospace' }}>
+                                  {parseFloat(j.debit) > 0
+                                    ? <span style={{ color: 'var(--info)', fontWeight: 600 }}>{formatRupiah(j.debit)}</span>
+                                    : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </td>
+                      <td className="hide-mobile" style={{ padding: 0, verticalAlign: 'top' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'transparent' }}>
+                          <tbody>
+                            {t.jurnal?.map((j, idx) => (
+                              <tr key={idx} style={{ borderBottom: idx < rowCount - 1 ? '1px dashed var(--border)' : 'none' }}>
+                                <td style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', textAlign: 'right', fontFamily: 'monospace' }}>
+                                  {parseFloat(j.kredit) > 0
+                                    ? <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{formatRupiah(j.kredit)}</span>
+                                    : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </td>
                       <td className="text-right font-mono font-bold" style={{ verticalAlign: 'top', paddingTop: '0.6rem' }}>
                         Rp {formatRupiah(total)}
