@@ -19,54 +19,46 @@ function parse(filePath) {
     const flat = row.map(v => String(v).trim());
 
     // Find transaction date
-    if (flat.some(c => c.includes('Tanggal Cetak'))) {
+    if (flat.some(c => c.toUpperCase().includes('TANGGAL CETAK'))) {
       const match = flat.join(' ').match(/(\d{4}-\d{2}-\d{2})/);
       if (match) tglTransaksi = match[1];
     }
 
     // Find totals - look for baris total/JUMLAH
-    if (flat.some(c => c.includes('JUMLAH') || c.includes('TOTAL'))) {
-      const vals = flat.map(v => parseFloat(v.replace(/[^\d,.-]/g, '').replace(',', '')) || 0);
-      const nonZero = vals.filter(v => v > 0);
-      
-      // Look at the numbers from right to left
+    if (flat.some(c => c.toUpperCase().includes('JUMLAH') || c.toUpperCase().includes('TOTAL'))) {
+      // Find all valid numbers in this row
       const nums = row.filter(v => {
-        const n = parseFloat(String(v).replace(/[^\d,.-]/g, '').replace(',', ''));
-        return !isNaN(n) && n > 0;
+        const str = String(v).trim();
+        if (str === '') return false;
+        if (str.toUpperCase().includes('TOTAL') || str.toUpperCase().includes('JUMLAH')) return false;
+        const n = parseFloat(str.replace(/[^\d,.-]/g, '').replace(',', ''));
+        return !isNaN(n);
       }).map(v => parseFloat(String(v).replace(/[^\d,.-]/g, '').replace(',', '')));
       
-      if (nums.length >= 5) {
-        // Typically: Air, Adm, Denda, Materai/Sewa(DM), Total
-        totalAir = nums[nums.length - 5] || totalAir;
-        totalAdm = nums[nums.length - 4] || totalAdm;
-        totalDenda = nums[nums.length - 3] || totalDenda;
-        totalDM = nums[nums.length - 2] || totalDM;
-        totalTerima = nums[nums.length - 1] || totalTerima;
-      } else if (nums.length >= 4) {
-        // If DM is missing or 0
-        totalAir = nums[nums.length - 4] || totalAir;
-        totalAdm = nums[nums.length - 3] || totalAdm;
-        totalDenda = nums[nums.length - 2] || totalDenda;
-        totalTerima = nums[nums.length - 1] || totalTerima;
-      }
-    }
-
-    // Also try: find rows with "UANG AIR" header pattern
-    if (flat.some(c => c.includes('UANG AIR')) && flat.some(c => c.includes('ADM'))) {
-      const nextRow = data[i + 1];
-      if (nextRow) {
-        const vals = nextRow.map(v => parseFloat(String(v).replace(/[^\d,.-]/g, '').replace(',', '')) || 0);
-        const nums = vals.filter(v => v > 0);
-        if (nums.length >= 4) {
-          totalAir = nums[nums.length - 4] || totalAir;
-          totalAdm = nums[nums.length - 3] || totalAdm;
-          totalDenda = nums[nums.length - 2] || totalDenda;
-          totalDM = nums[nums.length - 1] || totalDM;
-        } else if (nums.length >= 3) {
-          totalAir = nums[nums.length - 3] || totalAir;
-          totalAdm = nums[nums.length - 2] || totalAdm;
-          totalDenda = nums[nums.length - 1] || totalDenda;
-        }
+      // If we found at least 8 numbers, we can assume it's the total row of LPP
+      // Typical nums from right to left: 
+      // [0] TOTAL
+      // [1] MATERAI
+      // [2] DENDA
+      // [3] SUBTOTAL
+      // [4] NILAI REK (DM)
+      // [5] REK. AIR
+      // [6] ADM
+      // [7] UANG AIR
+      // [8] Jumlah Pelanggan
+      
+      if (nums.length >= 8) {
+        // Reverse array to read from right to left reliably
+        const rev = [...nums].reverse();
+        
+        totalTerima = rev[0] || 0;
+        totalDM = rev[4] || 0;
+        totalDenda = rev[2] || 0;
+        totalAdm = rev[6] || 0;
+        totalAir = rev[7] || 0;
+        
+        // Break out early once we found the main total row
+        break;
       }
     }
   }

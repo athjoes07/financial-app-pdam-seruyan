@@ -61,7 +61,8 @@ function createTx(db, tanggal, deskripsi, entries, sumber = '') {
 function parseDaftarVoucher(db, filePath, sumberFile) {
   const results = [];
   const wb = XLSX.readFile(filePath);
-  const sheet = wb.Sheets['DVUD'];
+  const targetSheetName = wb.SheetNames.find(s => s.toUpperCase() === 'DVUD');
+  const sheet = targetSheetName ? wb.Sheets[targetSheetName] : null;
   if (!sheet) return results;
   const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
   let tgl = '', noVoucher = '', uraian = '';
@@ -96,7 +97,8 @@ function parseDaftarVoucher(db, filePath, sumberFile) {
 function parseJurnalBayar(db, filePath, sumberFile) {
   const results = [];
   const wb = XLSX.readFile(filePath);
-  const sheet = wb.Sheets['JBK'];
+  const targetSheetName = wb.SheetNames.find(s => s.toUpperCase() === 'JBK');
+  const sheet = targetSheetName ? wb.Sheets[targetSheetName] : null;
   if (!sheet) return results;
   const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
   for (let i = 0; i < data.length; i++) {
@@ -123,11 +125,11 @@ function parseJurnalBayar(db, filePath, sumberFile) {
   return results;
 }
 
-function parseJurnalPembalik(db, filePath) {
+function parseJurnalPembalik(db, filePath, sumberFile = '') {
   const results = [];
   const wb = XLSX.readFile(filePath);
   for (const sheetName of wb.SheetNames) {
-    if (!sheetName.includes('Pemblk')) continue;
+    if (!sheetName.toUpperCase().includes('PEMBLK')) continue;
     const sheet = wb.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
     let tgl = '', entries = [];
@@ -145,7 +147,7 @@ function parseJurnalPembalik(db, filePath) {
       if (!tgl) continue;
 
       if (uraianDebet && debet > 0) {
-        const akun = db.queryOne('SELECT id FROM akun WHERE nama LIKE ?', ['%' + uraianDebet.replace(/\(.*\)/, '').trim() + '%']);
+        const akun = db.queryOne('SELECT id, kode FROM akun WHERE nama LIKE ?', ['%' + uraianDebet.replace(/\(.*\)/, '').trim() + '%']);
         if (akun) entries.push({ kode: akun.kode, debit: debet, kredit: 0 });
       }
       if (ref && kredit > 0) {
@@ -187,7 +189,8 @@ function parseAksesories(db, filePath, sumberFile) {
 
 function parsePersediaanKimia(filePath) {
   const wb = XLSX.readFile(filePath);
-  const sheet = wb.Sheets['REKAP TOTAL'];
+  const targetSheetName = wb.SheetNames.find(s => s.toUpperCase() === 'REKAP TOTAL');
+  const sheet = targetSheetName ? wb.Sheets[targetSheetName] : null;
   if (!sheet) return { total: 0 };
   const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
   let total = 0;
@@ -202,7 +205,8 @@ function parsePersediaanKimia(filePath) {
 
 function parseRealisasiAnggaran(filePath) {
   const wb = XLSX.readFile(filePath);
-  const sheet = wb.Sheets['NERACA KOMPARATIF'];
+  const targetSheetName = wb.SheetNames.find(s => s.toUpperCase() === 'NERACA KOMPARATIF');
+  const sheet = targetSheetName ? wb.Sheets[targetSheetName] : null;
   if (!sheet) return null;
   const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
   return { source: 'Realisasi Anggaran', rows: data.length };
@@ -248,6 +252,10 @@ function bulkImport(db, inputDir) {
         results.files_processed.push('RealisasiAnggaran: ' + file);
       } else if (file.toLowerCase().includes('aktiva tetap')) {
         results.files_processed.push('AktivaTetap: ' + file + ' (data aset)');
+      } else if (file.toLowerCase().includes('pembalik')) {
+        const txs = parseJurnalPembalik(db, filePath, file);
+        results.files_processed.push('JurnalPembalik: ' + file + ' (' + txs.length + ' transaksi)');
+        results.transactions.push(...txs);
       }
     } catch (err) {
       results.errors.push('Error ' + file + ': ' + err.message);

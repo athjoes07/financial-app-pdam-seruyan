@@ -17,24 +17,25 @@ function parse(filePath) {
     // Detect month
     let bulan = null;
     for (const m of months) {
-      if (flat.some(c => c.includes(m))) { bulan = m; break; }
+      if (flat.some(c => c.toUpperCase().includes(m.toUpperCase()))) { bulan = m; break; }
     }
 
     // Detect header row with GOLONGAN TARIF
-    if (flat.some(c => c.includes('GOLONGAN TARIF'))) {
+    if (flat.some(c => c.toUpperCase().includes('GOLONGAN TARIF'))) {
       inTable = true;
       headerMap.colGol = 0;
-      headerMap.colHA = flat.findIndex(c => c.includes('HARGA AIR'));
-      headerMap.colAdm = flat.findIndex(c => c.includes('JASA ADM'));
-      headerMap.colDM = flat.findIndex(c => c.includes('DANA METER'));
-      headerMap.colTotal = flat.findIndex(c => c === 'TOTAL (7+8)');
+      headerMap.colHA = flat.findIndex(c => c.toUpperCase().includes('HARGA AIR'));
+      headerMap.colAdm = flat.findIndex(c => c.toUpperCase().includes('JASA ADM'));
+      headerMap.colDM = flat.findIndex(c => c.toUpperCase().includes('DANA METER'));
+      headerMap.colTotal = flat.findIndex(c => c.toUpperCase().includes('TOTAL (7+8)'));
       continue;
     }
 
     if (inTable) {
       const gol = flat[0];
-      if (!gol || gol === '' || gol.includes('JUMLAH') || gol.includes('Jml')) {
-        if (gol && gol.includes('JUMLAH')) {
+      const golUp = gol ? gol.toUpperCase() : '';
+      if (!gol || gol === '' || golUp.includes('JUMLAH') || golUp.includes('JML') || golUp.includes('TOTAL')) {
+        if (gol && (golUp.includes('JUMLAH') || golUp.includes('TOTAL'))) {
           const total = parseFloat(flat[headerMap.colTotal]?.replace(/[^\d,.-]/g, '').replace(',', '') || '0');
           if (total > 0) {
             rows.push({
@@ -49,7 +50,7 @@ function parse(filePath) {
         }
         continue;
       }
-      if (gol.match(/^(HU|TI|YS|RS|R3|IRT|NK|INST|NB|R1|R2|S|PA|PB|PI|PP|PM|PS|PK)\s/)) {
+      if (gol.toUpperCase().match(/^(HU|TI|YS|RS|R3|IRT|NK|INST|NB|R1|R2|S|PA|PB|PI|PP|PM|PS|PK)\s/)) {
         const haStr = flat[headerMap.colHA] || '0';
         const admStr = flat[headerMap.colAdm] || '0';
         const dmStr = flat[headerMap.colDM] || '0';
