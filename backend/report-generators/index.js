@@ -96,7 +96,6 @@ function generateAllReports(db, outputDir) {
   const path = require('path');
 
   // Use current year as suffix for report file names
-  const year = new Date().getFullYear();
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
@@ -112,31 +111,31 @@ function generateAllReports(db, outputDir) {
 
   const results = [];
 
-  const jFile = `Journal ${year}.xlsx`;
+  const jFile = 'JOURNAL.xlsx';
   try {
     generateJournal(db, path.join(outputDir, jFile));
     results.push({ file: jFile, status: 'OK' });
   } catch (e) { results.push({ file: jFile, status: 'ERROR', error: e.message }); }
 
-  const bbFile = `BUKU BESAR ${year}.xlsx`;
+  const bbFile = 'BUKU BESAR.xlsx';
   try {
     generateBukuBesar(db, path.join(outputDir, bbFile));
     results.push({ file: bbFile, status: 'OK' });
   } catch (e) { results.push({ file: bbFile, status: 'ERROR', error: e.message }); }
 
-  const nlFile = `Neraca Lajur ${year}.xlsx`;
+  const nlFile = 'NERACA LAJUR.xlsx';
   try {
     generateNeracaLajur(db, path.join(outputDir, nlFile));
     results.push({ file: nlFile, status: 'OK' });
   } catch (e) { results.push({ file: nlFile, status: 'ERROR', error: e.message }); }
 
-  const fsFile = `Neraca, RL, Arus Kas, ${year}.xlsx`;
+  const fsFile = 'NERACA, RL, ARUS KAS.xlsx';
   try {
     generateFinancialStatements(db, path.join(outputDir, fsFile));
     results.push({ file: fsFile, status: 'OK' });
   } catch (e) { results.push({ file: fsFile, status: 'ERROR', error: e.message }); }
 
-  const atFile = `AUDIT_TRAIL.xlsx`;
+  const atFile = 'AUDIT_TRAIL.xlsx';
   try {
     generateAuditTrail(db, path.join(outputDir, atFile));
     results.push({ file: atFile, status: 'OK' });
