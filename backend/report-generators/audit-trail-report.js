@@ -178,7 +178,7 @@ function generateAuditTrail(db, outputPath) {
   ringkasan.push(['']);
   ringkasan.push(['TANGGAL GENERATE', waktuCetak]);
   ringkasan.push(['ENTITY', 'PERUSAHAAN DAERAH AIR MINUM KABUPATEN SERUYAN']);
-  ringkasan.push(['TOTAL INPUT FILE DIPROSES', inputFiles.length + ' file']);
+  ringkasan.push(['TOTAL INPUT FILE DIPROSES', sortedFiles.length + ' file (' + processedCount + ' diproses)']);
   ringkasan.push(['TOTAL TRANSAKSI (add_tx)', (totalTransaksi?.cnt || 0) + ' transaksi']);
   ringkasan.push(['TOTAL JURNAL ENTRIES', (totalJurnal?.cnt || 0) + ' entries']);
   ringkasan.push(['TOTAL AKUN BUKU BESAR', (akunAktif?.cnt || 0) + ' dari ' + totalAkun + ' di COA']);
