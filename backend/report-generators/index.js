@@ -34,7 +34,19 @@ const addTableStyles = (wb) => {
 
 function generateAllReports(db, outputDir) {
   const fs = require('fs');
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+  const path = require('path');
+  
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  } else {
+    // Clear old files
+    const oldFiles = fs.readdirSync(outputDir);
+    for (const f of oldFiles) {
+      if (f.endsWith('.xlsx')) {
+        fs.unlinkSync(path.join(outputDir, f));
+      }
+    }
+  }
 
   const results = [];
 
