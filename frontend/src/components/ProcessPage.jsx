@@ -226,7 +226,7 @@ export default function ProcessPage() {
         </div>
       </div>
 
-      {viewMode === 'input' && (
+      {processTab === 'input' && (
         <>
       {/* Pipeline Visualization */}
       <div className="card">
