@@ -35,9 +35,13 @@ module.exports = function (db) {
 
       console.log(`[DELETE] File: ${fname} | Transaksi dihapus: ${txDeleted} | Jurnal dihapus: ${jurnalDeleted}`);
 
-      // 3. Hapus dari Supabase Storage (abaikan error jika file sudah tidak ada)
+      // 3. Hapus dari Supabase Storage (jika gagal, beri respons error)
       const { error: rmError } = await supabase.storage.from('pdam-storage').remove([`excel/${fname}`]);
-      if (rmError) console.warn('[DELETE] Supabase Storage warning:', rmError.message);
+      if (rmError) {
+        console.error('[DELETE] Supabase Storage error:', rmError.message);
+        // Rollback DB deletions if needed (optional)
+        return res.status(500).json({ error: 'Gagal menghapus file dari Supabase Storage: ' + rmError.message });
+      }
 
       // 4. Hapus file lokal jika ada
       if (fs.existsSync(filePath)) {

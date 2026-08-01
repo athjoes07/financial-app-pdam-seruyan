@@ -106,9 +106,9 @@ export default function ProcessPage() {
       if (!res.ok) throw new Error(data.error || 'Gagal menghapus file')
       const txCount = data.dbDeleted ? data.dbDeleted.transaksi : '?'
       const jCount = data.dbDeleted ? data.dbDeleted.jurnal : '?'
-      console.log(`[DELETE] ${filename}: ${txCount} transaksi, ${jCount} jurnal dihapus dari DB`)
-      // Immediately remove from UI
-      setInputFiles(prev => prev.filter(f => f.filename !== filename))
+      console.log(`[DELETE] ${filename}: ${txCount} transaksi, ${jCount} jurnal dihapus dari DB`);
+      // Refresh the input file list from backend to ensure UI reflects actual storage state
+      await fetchFileList();
     } catch (err) {
       window.alert('Gagal menghapus file: ' + err.message)
     }
