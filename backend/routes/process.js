@@ -441,8 +441,22 @@ module.exports = function (db) {
 
   router.post('/input', async (req, res) => {
     try {
+      // Optional list of filenames to process (e.g., the 5 files you just uploaded)
+      const { files } = req.body || {};
       await syncExcelFilesFromSupabase();
-      
+      // If a whitelist is provided, prune the local input folder to keep only those files
+      if (Array.isArray(files) && files.length > 0) {
+        const localFiles = fs.readdirSync(inputDir).filter(f => /\.xlsx?$/i.test(f));
+        const missing = files.filter(f => !localFiles.includes(f));
+        if (missing.length) {
+          return res.status(400).json({ error: `Requested file(s) not found after sync: ${missing.join(', ')}` });
+        }
+        for (const f of localFiles) {
+          if (!files.includes(f)) {
+            try { fs.unlinkSync(path.join(inputDir, f)); } catch (e) {}
+          }
+        }
+      }
       const result1 = await processInputFiles(db, inputDir);
       const result2 = await bulkImport(db, inputDir);
 
