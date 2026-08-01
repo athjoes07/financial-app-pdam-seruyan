@@ -11,7 +11,7 @@ module.exports = function (db) {
   const router = express.Router();
   const isServerless = process.env.K_SERVICE || process.env.VERCEL;
   const baseDir = isServerless ? '/tmp' : path.join(__dirname, '..', '..');
-  const inputDir = isServerless ? '/tmp' : path.join(baseDir, 'ini bg');
+  const inputDir = isServerless ? '/tmp' : path.join(baseDir, 'penyimpanan');
   const inputTrashDir = isServerless ? '/tmp/trash' : path.join(baseDir, 'penyimpanan-trash');
   const outputDir = isServerless ? '/tmp' : path.join(baseDir, 'output-app');
   const sampleOutputDir = isServerless ? '/tmp' : path.join(baseDir, 'output');
@@ -180,19 +180,16 @@ module.exports = function (db) {
 
   router.get('/input-files', async (req, res) => {
     try {
-      // List files from the local input directory (ini bg)
-      const dirPath = inputDir;
-      if (!fs.existsSync(dirPath)) {
-        return res.json([]);
-      }
-      const localFiles = fs.readdirSync(dirPath).filter(f => /\.xlsx?$/i.test(f));
-      const files = localFiles.map(f => {
-        const stat = fs.statSync(path.join(dirPath, f));
+      // List from Supabase directly so it's accurate across serverless instances
+      const { data, error } = await supabase.storage.from('pdam-storage').list('excel');
+      if (error) throw error;
+
+      const files = (data || []).filter(f => f.name !== '.emptyFolderPlaceholder' && /\.xlsx?$/i.test(f.name)).map(f => {
         return {
-          filename: f,
-          size: stat.size,
-          modified: stat.mtime,
-          downloadUrl: `/api/process/download-input/${encodeURIComponent(f)}`
+          filename: f.name,
+          size: f.metadata ? f.metadata.size : 0,
+          modified: f.created_at,
+          downloadUrl: `/api/process/download-input/${encodeURIComponent(f.name)}`
         };
       });
       res.json(files);
