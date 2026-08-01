@@ -47,18 +47,12 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
               const rangeTmp = XLSX.utils.decode_range(wsTmp['!ref'] || 'A1');
               // Header row (first row)
               const headerVals = [];
-              const headerNames = [];
               for (let c = rangeTmp.s.c; c <= rangeTmp.e.c; c++) {
                 const addr = XLSX.utils.encode_cell({ r: rangeTmp.s.r, c });
                 const cell = wsTmp[addr];
-                if (cell && cell.v != null) {
-                  const header = String(cell.v).trim();
-                  headerVals.push(header);
-                  const colLetter = String.fromCharCode(65 + (c - rangeTmp.s.c));
-                  headerNames.push(`${colLetter}:${header}`);
-                }
+                if (cell && cell.v != null) headerVals.push(String(cell.v).trim());
               }
-              colNames = headerNames.filter(v => v).join(', ');
+              colNames = headerVals.filter(v => v).join(', ');
               // Sample data row (second row if exists)
               const dataRow = rangeTmp.s.r + 1;
               if (dataRow <= rangeTmp.e.r) {
@@ -66,11 +60,7 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
                 for (let c = rangeTmp.s.c; c <= rangeTmp.e.c; c++) {
                   const addr = XLSX.utils.encode_cell({ r: dataRow, c });
                   const cell = wsTmp[addr];
-                  if (cell && cell.v != null) {
-                    const value = String(cell.v).trim();
-                    const colLetter = String.fromCharCode(65 + (c - rangeTmp.s.c));
-                    sampleVals.push(`${colLetter}:${value}`);
-                  }
+                  if (cell && cell.v != null) sampleVals.push(String(cell.v).trim());
                 }
                 sampleData = sampleVals.filter(v => v).join(', ');
               }
