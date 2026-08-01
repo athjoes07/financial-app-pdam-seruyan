@@ -24,53 +24,30 @@ module.exports = function (db) {
     try {
       const fname = decodeURIComponent(req.params.filename);
       const filePath = path.join(inputDir, fname);
-      const trashPath = path.join(inputTrashDir, fname);
 
-      // Record Before State for Audit Trail
-      const beforeTxs = await db.queryAll('SELECT * FROM transaksi WHERE sumber = ?', [fname]);
-      const beforeState = [];
-      for (const tx of beforeTxs) {
-        const jurnal = await db.queryAll('SELECT * FROM jurnal WHERE transaksi_id = ?', [tx.id]);
-        beforeState.push({ transaksi: tx, jurnal });
-      }
-
-      // Delete transactions AND related jurnal from database
-      // For Postgres, FK cascade is on by default, but we can also explicitly delete.
-      try {
-        await db.queryRun('PRAGMA foreign_keys = ON');
-      } catch (e) {
-        // Ignore error if not SQLite (e.g. Postgres where it's a syntax error)
-      }
-      
-      // Delete orphan jurnal entries tied to this file's transactions
+      // 1. Delete from database (jurnal first due to FK, then transaksi)
+      try { await db.queryRun('PRAGMA foreign_keys = ON'); } catch (e) {}
       await db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ?)', [fname]);
       await db.queryRun('DELETE FROM transaksi WHERE sumber = ?', [fname]);
-      // Also clean up any remaining orphan journal entries just in case
       await db.queryRun('DELETE FROM jurnal WHERE transaksi_id NOT IN (SELECT id FROM transaksi)');
+      if (typeof db.saveDbAsync === 'function') await db.saveDbAsync();
 
-      if (typeof db.insertAuditLog === 'function' && beforeTxs.length > 0) {
-        await db.insertAuditLog('DELETE', fname, 'Hapus Data ' + fname, 'SUCCESS', 'Dihapus ' + beforeTxs.length + ' transaksi', beforeState, null);
-      }
-      
-      // Sync DB state to Supabase
-      if (typeof db.saveDbAsync === 'function') {
-        await db.saveDbAsync();
-      }
+      // 2. PERMANENTLY delete from Supabase Storage
+      console.log(`[DELETE] Removing from Supabase: excel/${fname}`);
+      const { data: rmData, error: rmError } = await supabase.storage
+        .from('pdam-storage')
+        .remove([`excel/${fname}`]);
+      console.log(`[DELETE] Supabase remove result:`, JSON.stringify(rmData), rmError);
+      if (rmError) throw new Error('Supabase Storage error: ' + rmError.message);
 
-      // Delete from Supabase Storage
-      const { data: rmData, error: rmError } = await supabase.storage.from('pdam-storage').remove([`excel/${fname}`]);
-      if (rmError) {
-        console.error("Failed to remove from Supabase:", rmError);
-        throw new Error("Gagal menghapus file dari Cloud Storage: " + rmError.message);
-      }
-
-      // Move local file to trash if exists
+      // 3. Delete local file permanently
       if (fs.existsSync(filePath)) {
-        fs.renameSync(filePath, trashPath);
+        fs.unlinkSync(filePath);
       }
 
-      res.json({ message: 'File dihapus dan transaksi terkait dibatalkan dari sistem.', deletedFromDb: true });
+      res.json({ message: `File "${fname}" berhasil dihapus permanen dari sistem.`, deleted: true });
     } catch (err) {
+      console.error('[DELETE] Error:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -79,39 +56,44 @@ module.exports = function (db) {
     try {
       // 1. Get all files from Supabase Storage
       const { data: storageFiles, error: listError } = await supabase.storage.from('pdam-storage').list('excel');
-      if (listError) throw listError;
+      if (listError) throw new Error('Gagal list Supabase: ' + listError.message);
 
       const filenames = (storageFiles || [])
         .filter(f => f.name !== '.emptyFolderPlaceholder' && /\.xlsx?$/i.test(f.name))
         .map(f => f.name);
 
+      console.log(`[DELETE-ALL] Found ${filenames.length} files in Supabase:`, filenames);
+
       // 2. Delete all transactions & journals from database
       try { await db.queryRun('PRAGMA foreign_keys = ON'); } catch(e) {}
-      await db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ANY($1::text[]))', [filenames]);
-      await db.queryRun('DELETE FROM transaksi WHERE sumber = ANY($1::text[])', [filenames]);
-      await db.queryRun('DELETE FROM jurnal WHERE transaksi_id NOT IN (SELECT id FROM transaksi)');
-
+      await db.queryRun('DELETE FROM jurnal');
+      await db.queryRun('DELETE FROM transaksi');
       if (typeof db.saveDbAsync === 'function') await db.saveDbAsync();
 
-      // 3. Delete all files from Supabase Storage
-      const storagePaths = filenames.map(f => `excel/${f}`);
-      if (storagePaths.length > 0) {
-        await supabase.storage.from('pdam-storage').remove(storagePaths);
+      // 3. PERMANENTLY delete all files from Supabase Storage (one by one to ensure success)
+      const deleteResults = [];
+      for (const fname of filenames) {
+        const { data, error } = await supabase.storage.from('pdam-storage').remove([`excel/${fname}`]);
+        console.log(`[DELETE-ALL] Removed excel/${fname}:`, JSON.stringify(data), error);
+        deleteResults.push({ file: fname, success: !error, error: error?.message });
       }
 
-      // 4. Move local files to trash
-      if (!fs.existsSync(inputTrashDir)) fs.mkdirSync(inputTrashDir, { recursive: true });
+      // 4. Delete all local files permanently
       if (fs.existsSync(inputDir)) {
         const localFiles = fs.readdirSync(inputDir).filter(f => /\.xlsx?$/i.test(f));
         for (const f of localFiles) {
-          const src = path.join(inputDir, f);
-          const dst = path.join(inputTrashDir, f);
-          try { fs.renameSync(src, dst); } catch(e) {}
+          try { fs.unlinkSync(path.join(inputDir, f)); } catch(e) {}
         }
       }
 
-      res.json({ message: `Berhasil menghapus ${filenames.length} file input beserta seluruh data transaksinya.`, count: filenames.length });
+      const failed = deleteResults.filter(r => !r.success);
+      res.json({
+        message: `Berhasil menghapus ${filenames.length - failed.length} dari ${filenames.length} file input secara permanen.`,
+        count: filenames.length,
+        failed
+      });
     } catch (err) {
+      console.error('[DELETE-ALL] Error:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
