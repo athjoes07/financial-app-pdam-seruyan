@@ -8,7 +8,7 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
 
   // === SHEET 1: Input File Map ===
   const inputFileMap = [];
-  inputFileMap.push(['AUDIT TRAIL - INPUT FILE MAP LAPORAN KEU']);
+  inputFileMap.push(['AUDIT TRAIL - INPUT FILE MAP LAPORAN KEUANGAN']);
   inputFileMap.push(['']);
   inputFileMap.push(['No', 'File Input', 'Sheet Name', 'Baris (Row)', 'Kolom (Col)', 'Data Diekstrak', 'Tujuan (add_tx / Output)', 'Status']);
 
