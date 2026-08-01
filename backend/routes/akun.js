@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 
 module.exports = function(db) {
-  router.get('/', (req, res) => {
-    const akun = db.queryAll('SELECT * FROM akun ORDER BY kode');
+  router.get('/', async (req, res) => {
+    const akun = await db.queryAll('SELECT * FROM akun ORDER BY kode');
     res.json(akun);
   });
 

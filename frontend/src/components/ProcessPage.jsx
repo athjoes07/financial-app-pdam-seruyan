@@ -12,6 +12,10 @@ export default function ProcessPage() {
   const [trashFiles, setTrashFiles] = useState([])
   const [downloadFormat, setDownloadFormat] = useState('xls')
   const [processTab, setProcessTab] = useState('input')
+  const [exportDate, setExportDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  })
 
   // Preview states
   const [previewData, setPreviewData] = useState(null)
@@ -94,7 +98,11 @@ export default function ProcessPage() {
     setError('')
     setResult(null)
     try {
-      const res = await fetch(`${API_URL}/api/process/run-all`, { method: 'POST' })
+      const res = await fetch(`${API_URL}/api/process/run-all`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exportDate })
+      })
       const data = await res.json()
       setResult(data)
       fetchFileList()
@@ -201,25 +209,36 @@ export default function ProcessPage() {
     <div className="page">
       {/* Page Header */}
       <div className="page-header">
-        <div className="page-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="page-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h1 className="page-title">Proses ETL</h1>
             <p className="page-subtitle">Pengolahan input → generate laporan output</p>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <button
-              className="btn btn-primary"
-              onClick={handleProcess}
-              disabled={loading || viewMode === 'trash'}
-            >
-              {loading ? '⚡ Memproses...' : '🚀 Proses Sekarang'}
-            </button>
-            <button 
-              className="btn btn-secondary btn-sm" 
-              onClick={() => setViewMode(viewMode === 'input' ? 'trash' : 'input')}
-            >
-              {viewMode === 'input' ? '🗑️ Tempat Sampah' : '📁 File Aktif'}
-            </button>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Tanggal Cetak Laporan:</label>
+              <input 
+                type="date" 
+                value={exportDate} 
+                onChange={e => setExportDate(e.target.value)}
+                style={{ padding: '0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: '0.85rem' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <button
+                className="btn btn-primary"
+                onClick={handleProcess}
+                disabled={loading || viewMode === 'trash'}
+              >
+                {loading ? '⚡ Memproses...' : '🚀 Proses Sekarang'}
+              </button>
+              <button 
+                className="btn btn-secondary btn-sm" 
+                onClick={() => setViewMode(viewMode === 'input' ? 'trash' : 'input')}
+              >
+                {viewMode === 'input' ? '🗑️ Tempat Sampah' : '📁 File Aktif'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

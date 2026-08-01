@@ -14,7 +14,7 @@ async function syncToFirestore(db) {
   const results = { akun: 0, transaksi: 0, jurnal: 0 };
 
   // 1. Sync akun (gunakan batch)
-  const akun = db.queryAll('SELECT * FROM akun');
+  const akun = await db.queryAll('SELECT * FROM akun');
   for (const a of akun) {
     try {
       const existing = await firestore.collection('akun').where('kode', '==', a.kode).get();
@@ -31,7 +31,7 @@ async function syncToFirestore(db) {
   }
 
   // 2. Sync transaksi + jurnal
-  const transaksi = db.queryAll('SELECT * FROM transaksi ORDER BY id');
+  const transaksi = await db.queryAll('SELECT * FROM transaksi ORDER BY id');
   for (const t of transaksi) {
     try {
       const existing = await firestore.collection('transaksi').where('id_lama', '==', t.id).get();
@@ -45,7 +45,7 @@ async function syncToFirestore(db) {
         syncedAt: new Date().toISOString()
       });
 
-      const jurnal = db.queryAll('SELECT * FROM jurnal WHERE transaksi_id = ?', [t.id]);
+      const jurnal = await db.queryAll('SELECT * FROM jurnal WHERE transaksi_id = ?', [t.id]);
       for (const j of jurnal) {
         await firestore.collection('jurnal').add({
           transaksi_id: txRef.id,

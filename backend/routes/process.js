@@ -27,24 +27,24 @@ module.exports = function (db) {
       const trashPath = path.join(inputTrashDir, fname);
 
       // Record Before State for Audit Trail
-      const beforeTxs = db.queryAll('SELECT * FROM transaksi WHERE sumber = ?', [fname]);
+      const beforeTxs = await db.queryAll('SELECT * FROM transaksi WHERE sumber = ?', [fname]);
       const beforeState = [];
       for (const tx of beforeTxs) {
-        const jurnal = db.queryAll('SELECT * FROM jurnal WHERE transaksi_id = ?', [tx.id]);
+        const jurnal = await db.queryAll('SELECT * FROM jurnal WHERE transaksi_id = ?', [tx.id]);
         beforeState.push({ transaksi: tx, jurnal });
       }
 
       // Delete transactions AND related jurnal from database
       // First enable FK support (SQLite needs this explicitly)
-      db.queryRun('PRAGMA foreign_keys = ON');
+      await db.queryRun('PRAGMA foreign_keys = ON');
       // Delete orphan jurnal entries tied to this file's transactions
-      db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ?)', [fname]);
-      db.queryRun('DELETE FROM transaksi WHERE sumber = ?', [fname]);
+      await db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ?)', [fname]);
+      await db.queryRun('DELETE FROM transaksi WHERE sumber = ?', [fname]);
       // Also clean up any remaining orphan journal entries just in case
-      db.queryRun('DELETE FROM jurnal WHERE transaksi_id NOT IN (SELECT id FROM transaksi)');
+      await db.queryRun('DELETE FROM jurnal WHERE transaksi_id NOT IN (SELECT id FROM transaksi)');
 
-      if (typeof db.insertAuditLog === 'function' && beforeTxs.length > 0) {
-        db.insertAuditLog('DELETE', fname, 'Hapus Data ' + fname, 'SUCCESS', 'Dihapus ' + beforeTxs.length + ' transaksi', beforeState, null);
+      if (typeof await db.insertAuditLog === 'function' && beforeTxs.length > 0) {
+        await db.insertAuditLog('DELETE', fname, 'Hapus Data ' + fname, 'SUCCESS', 'Dihapus ' + beforeTxs.length + ' transaksi', beforeState, null);
       }
       
       // Sync DB state to Supabase
@@ -66,7 +66,7 @@ module.exports = function (db) {
     }
   });
 
-  router.get('/trash-files', (req, res) => {
+  router.get('/trash-files', async (req, res) => {
     try {
       if (!fs.existsSync(inputTrashDir)) return res.json([]);
       const files = fs.readdirSync(inputTrashDir).filter(f => /\.xlsx?$/i.test(f)).map(f => {
@@ -147,7 +147,7 @@ module.exports = function (db) {
     }
   });
 
-  router.get('/output-files', (req, res) => {
+  router.get('/output-files', async (req, res) => {
     try {
       const targetDir = fs.existsSync(outputDir) ? outputDir : sampleOutputDir;
       if (!fs.existsSync(targetDir)) return res.json([]);
@@ -166,16 +166,16 @@ module.exports = function (db) {
     }
   });
 
-  router.get('/audit-logs', (req, res) => {
+  router.get('/audit-logs', async (req, res) => {
     try {
-      const logs = db.queryAll('SELECT * FROM audit_log ORDER BY id DESC LIMIT 200');
+      const logs = await db.queryAll('SELECT * FROM audit_log ORDER BY id DESC LIMIT 200');
       res.json(logs);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  router.get('/download/:filename', (req, res) => {
+  router.get('/download/:filename', async (req, res) => {
     try {
       const fname = decodeURIComponent(req.params.filename);
       let filePath = path.join(outputDir, fname);
@@ -392,7 +392,8 @@ module.exports = function (db) {
 
   router.post('/generate', async (req, res) => {
     try {
-      const results = generateAllReports(db, outputDir);
+      const { exportDate } = req.body || {};
+      const results = generateAllReports(db, outputDir, exportDate);
       res.json({ output_dir: outputDir, results });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -426,11 +427,12 @@ module.exports = function (db) {
 
   router.post('/run-all', async (req, res) => {
     try {
+      const { exportDate } = req.body || {};
       await syncExcelFilesFromSupabase();
       
       const bulkResult = bulkImport(db, inputDir);
       const processResult = processInputFiles(db, inputDir);
-      const reportResults = generateAllReports(db, outputDir);
+      const reportResults = generateAllReports(db, outputDir, exportDate);
 
       if (typeof db.saveDbAsync === 'function') {
         await db.saveDbAsync();

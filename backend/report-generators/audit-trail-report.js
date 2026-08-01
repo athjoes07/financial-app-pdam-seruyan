@@ -1,6 +1,6 @@
 const XLSX = require('xlsx-js-style');
 
-function generateAuditTrail(db, outputPath) {
+async function generateAuditTrail(db, outputPath, exportDate = null) {
   const wb = XLSX.utils.book_new();
 
   const now = new Date();
@@ -20,7 +20,7 @@ function generateAuditTrail(db, outputPath) {
     physicalFiles = fs.readdirSync(inputDir).filter(f => /\.(xls|xlsx)$/i.test(f) && !f.startsWith('~$'));
   } catch(e) {}
 
-  const dbInputFiles = db.queryAll('SELECT DISTINCT sumber FROM transaksi WHERE sumber != "" ORDER BY sumber');
+  const dbInputFiles = await db.queryAll('SELECT DISTINCT sumber FROM transaksi WHERE sumber != "" ORDER BY sumber');
   const dbFilesMap = {};
   dbInputFiles.forEach(f => dbFilesMap[f.sumber] = true);
 
@@ -31,7 +31,7 @@ function generateAuditTrail(db, outputPath) {
   let processedCount = 0;
   for (const f of sortedFiles) {
     if (dbFilesMap[f]) {
-      const txCount = db.queryOne('SELECT COUNT(*) as cnt FROM transaksi WHERE sumber = ?', [f]);
+      const txCount = await db.queryOne('SELECT COUNT(*) as cnt FROM transaksi WHERE sumber = ?', [f]);
       inputFileMap.push([no++, f, 'Sheet0', 'Semua baris', '-', '-', 'Input ke DB', 'TERPROSES']);
       processedCount++;
     } else {
@@ -55,7 +55,7 @@ function generateAuditTrail(db, outputPath) {
   journalAudit.push(['']);
   journalAudit.push(['No', 'Sumber (src)', 'Ref', 'Tgl', 'Deskripsi', 'Debet', 'Credit', 'Jumlah (Rp)', 'Output yang Terdampak']);
 
-  const transactions = db.queryAll(`
+  const transactions = await db.queryAll(`
     SELECT t.*, GROUP_CONCAT(
       '{"akun_id":' || j.akun_id || ',"akun_kode":"' || a.kode || '","akun_nama":"' || a.nama || '","debit":' || j.debit || ',"kredit":' || j.kredit || '}'
     ) as jurnal
@@ -123,8 +123,8 @@ function generateAuditTrail(db, outputPath) {
   dataTidakMasuk.push(['']);
   dataTidakMasuk.push(['No', 'Data Input', 'Lokasi File/Sheet/Cell', 'Alasan Tidak Diproses', 'Rekomendasi']);
 
-  const allAkun = db.queryAll('SELECT COUNT(*) as cnt FROM akun');
-  const akunWithTx = db.queryAll('SELECT COUNT(DISTINCT a.id) as cnt FROM akun a INNER JOIN jurnal j ON j.akun_id = a.id');
+  const allAkun = await db.queryAll('SELECT COUNT(*) as cnt FROM akun');
+  const akunWithTx = await db.queryAll('SELECT COUNT(DISTINCT a.id) as cnt FROM akun a INNER JOIN jurnal j ON j.akun_id = a.id');
   const totalAkun = allAkun[0]?.cnt || 0;
   const akunUsed = akunWithTx[0]?.cnt || 0;
   const akunUnused = totalAkun - akunUsed;
@@ -145,12 +145,12 @@ function generateAuditTrail(db, outputPath) {
   coaUsage.push(['']);
   coaUsage.push(['No', 'Kode Akun', 'Nama Akun', 'Kategori', 'Saldo (Rp)', 'Digunakan?', 'Jml Transaksi']);
 
-  const allAccounts = db.queryAll('SELECT * FROM akun ORDER BY kode');
+  const allAccounts = await db.queryAll('SELECT * FROM akun ORDER BY kode');
   let coaNo = 1;
   for (const a of allAccounts) {
-    const jCount = db.queryOne('SELECT COUNT(*) as cnt FROM jurnal WHERE akun_id = ?', [a.id]);
+    const jCount = await db.queryOne('SELECT COUNT(*) as cnt FROM jurnal WHERE akun_id = ?', [a.id]);
     const jml = jCount?.cnt || 0;
-    const jBalance = db.queryOne('SELECT COALESCE(SUM(j.debit),0) as td, COALESCE(SUM(j.kredit),0) as tk FROM jurnal j WHERE j.akun_id = ?', [a.id]);
+    const jBalance = await db.queryOne('SELECT COALESCE(SUM(j.debit),0) as td, COALESCE(SUM(j.kredit),0) as tk FROM jurnal j WHERE j.akun_id = ?', [a.id]);
     const saldo = a.saldo_normal === 'debit' ? (jBalance?.td || 0) - (jBalance?.tk || 0) : (jBalance?.tk || 0) - (jBalance?.td || 0);
 
     coaUsage.push([
@@ -169,9 +169,9 @@ function generateAuditTrail(db, outputPath) {
   XLSX.utils.book_append_sheet(wb, coaUsageSheet, 'COA Usage');
 
   // === SHEET 6: Ringkasan ===
-  const totalJurnal = db.queryOne('SELECT COUNT(*) as cnt FROM jurnal');
-  const totalTransaksi = db.queryOne('SELECT COUNT(*) as cnt FROM transaksi');
-  const akunAktif = db.queryOne('SELECT COUNT(DISTINCT akun_id) as cnt FROM jurnal');
+  const totalJurnal = await db.queryOne('SELECT COUNT(*) as cnt FROM jurnal');
+  const totalTransaksi = await db.queryOne('SELECT COUNT(*) as cnt FROM transaksi');
+  const akunAktif = await db.queryOne('SELECT COUNT(DISTINCT akun_id) as cnt FROM jurnal');
 
   const ringkasan = [];
   ringkasan.push(['RINGKASAN AUDIT TRAIL']);

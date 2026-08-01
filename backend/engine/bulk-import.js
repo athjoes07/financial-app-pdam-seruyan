@@ -25,10 +25,10 @@ function excelDateToISO(val) {
   return new Date().getFullYear() + '-01-01';
 }
 
-function createTx(db, tanggal, deskripsi, entries, sumber = '') {
+async function createTx(db, tanggal, deskripsi, entries, sumber = '') {
   if (!entries || entries.length === 0) return null;
-  db.queryRun('INSERT INTO transaksi (tanggal, deskripsi, sumber) VALUES (?, ?, ?)', [tanggal, deskripsi, sumber]);
-  const result = db.queryOne('SELECT MAX(id) as id FROM transaksi');
+  await db.queryRun('INSERT INTO transaksi (tanggal, deskripsi, sumber) VALUES (?, ?, ?)', [tanggal, deskripsi, sumber]);
+  const result = await db.queryOne('SELECT MAX(id) as id FROM transaksi');
   const tId = result.id;
   
   let totalDebit = 0;
@@ -36,9 +36,9 @@ function createTx(db, tanggal, deskripsi, entries, sumber = '') {
 
   for (const e of entries) {
     if (!e.kode || (!e.debit && !e.kredit)) continue;
-    const akun = db.queryOne('SELECT id FROM akun WHERE kode = ?', [e.kode]);
+    const akun = await db.queryOne('SELECT id FROM akun WHERE kode = ?', [e.kode]);
     if (akun) {
-      db.queryRun('INSERT INTO jurnal (transaksi_id, akun_id, debit, kredit) VALUES (?, ?, ?, ?)', [tId, akun.id, e.debit || 0, e.kredit || 0]);
+      await db.queryRun('INSERT INTO jurnal (transaksi_id, akun_id, debit, kredit) VALUES (?, ?, ?, ?)', [tId, akun.id, e.debit || 0, e.kredit || 0]);
       totalDebit += e.debit || 0;
       totalKredit += e.kredit || 0;
     }
@@ -51,14 +51,14 @@ function createTx(db, tanggal, deskripsi, entries, sumber = '') {
     jurnal: entries
   };
 
-  if (typeof db.insertAuditLog === 'function') {
-    db.insertAuditLog('TRANSAKSI', sumber || 'Sistem', deskripsi, status, detail, null, afterState);
+  if (typeof await db.insertAuditLog === 'function') {
+    await db.insertAuditLog('TRANSAKSI', sumber || 'Sistem', deskripsi, status, detail, null, afterState);
   }
 
   return tId;
 }
 
-function parseDaftarVoucher(db, filePath, sumberFile) {
+async function parseDaftarVoucher(db, filePath, sumberFile) {
   const results = [];
   const wb = XLSX.readFile(filePath);
   const targetSheetName = wb.SheetNames.find(s => s.toUpperCase() === 'DVUD');
@@ -83,7 +83,7 @@ function parseDaftarVoucher(db, filePath, sumberFile) {
       const jumlahKredit = parseFloat(String(r[10] || '0').replace(/[^0-9.-]/g, '')) || 0;
 
       if (uraian && kodeDebet && jumlahDebet > 0 && kodeKredit && jumlahKredit > 0) {
-        const txId = createTx(db, tgl, 'Voucher: ' + uraian, [
+        const txId = await createTx(db, tgl, 'Voucher: ' + uraian, [
           { kode: kodeDebet, debit: jumlahDebet, kredit: 0 },
           { kode: kodeKredit, debit: 0, kredit: jumlahKredit }
         ], sumberFile);
@@ -94,7 +94,7 @@ function parseDaftarVoucher(db, filePath, sumberFile) {
   return results;
 }
 
-function parseJurnalBayar(db, filePath, sumberFile) {
+async function parseJurnalBayar(db, filePath, sumberFile) {
   const results = [];
   const wb = XLSX.readFile(filePath);
   const targetSheetName = wb.SheetNames.find(s => s.toUpperCase() === 'JBK');
@@ -117,7 +117,7 @@ function parseJurnalBayar(db, filePath, sumberFile) {
       if (utangNonUsaha > 0) entries.push({ kode: '50.02.00', debit: utangNonUsaha, kredit: 0 });
       if (kas > 0) entries.push({ kode: '11.01.00', debit: 0, kredit: kas });
       if (entries.length >= 2) {
-        const txId = createTx(db, tgl, 'Bayar: ' + uraian, entries, sumberFile);
+        const txId = await createTx(db, tgl, 'Bayar: ' + uraian, entries, sumberFile);
         if (txId) results.push({ id: txId, desc: uraian, total: kas || utangUsaha });
       }
     }
@@ -125,7 +125,7 @@ function parseJurnalBayar(db, filePath, sumberFile) {
   return results;
 }
 
-function parseJurnalPembalik(db, filePath, sumberFile = '') {
+async function parseJurnalPembalik(db, filePath, sumberFile = '') {
   const results = [];
   const wb = XLSX.readFile(filePath);
   for (const sheetName of wb.SheetNames) {
@@ -147,16 +147,16 @@ function parseJurnalPembalik(db, filePath, sumberFile = '') {
       if (!tgl) continue;
 
       if (uraianDebet && debet > 0) {
-        const akun = db.queryOne('SELECT id, kode FROM akun WHERE nama LIKE ?', ['%' + uraianDebet.replace(/\(.*\)/, '').trim() + '%']);
+        const akun = await db.queryOne('SELECT id, kode FROM akun WHERE nama LIKE ?', ['%' + uraianDebet.replace(/\(.*\)/, '').trim() + '%']);
         if (akun) entries.push({ kode: akun.kode, debit: debet, kredit: 0 });
       }
       if (ref && kredit > 0) {
         const uraianKredit = String(r[3] || '').trim();
-        const akun = db.queryOne('SELECT id, kode FROM akun WHERE nama LIKE ?', ['%' + uraianKredit.replace(/\(.*\)/, '').trim() + '%']);
+        const akun = await db.queryOne('SELECT id, kode FROM akun WHERE nama LIKE ?', ['%' + uraianKredit.replace(/\(.*\)/, '').trim() + '%']);
         if (akun) entries.push({ kode: akun.kode, debit: 0, kredit: kredit });
       }
       if (entries.length >= 2 && i % 3 === 0) {
-        const txId = createTx(db, tgl, 'Pembalik: ' + uraianDebet, entries, sumberFile);
+        const txId = await createTx(db, tgl, 'Pembalik: ' + uraianDebet, entries, sumberFile);
         if (txId) results.push({ id: txId, desc: uraianDebet, total: debet });
         entries = [];
       }
@@ -165,7 +165,7 @@ function parseJurnalPembalik(db, filePath, sumberFile = '') {
   return results;
 }
 
-function parseAksesories(db, filePath, sumberFile) {
+async function parseAksesories(db, filePath, sumberFile) {
   const wb = XLSX.readFile(filePath);
   let totalNilai = 0;
   const skipLabels = ['jumlah', 'jml', 'total', 'sub total'];
@@ -212,7 +212,7 @@ function parseRealisasiAnggaran(filePath) {
   return { source: 'Realisasi Anggaran', rows: data.length };
 }
 
-function bulkImport(db, inputDir) {
+async function bulkImport(db, inputDir) {
   const results = { files_processed: [], transactions: [], errors: [] };
   const files = fs.readdirSync(inputDir).filter(f => /\.xlsx?$/i.test(f));
 
@@ -220,18 +220,18 @@ function bulkImport(db, inputDir) {
     const filePath = path.join(inputDir, file);
     try {
       if (file.toLowerCase().includes('daftar voucher')) {
-        const txs = parseDaftarVoucher(db, filePath, file);
+        const txs = await parseDaftarVoucher(db, filePath, file);
         results.files_processed.push('DaftarVoucher: ' + file + ' (' + txs.length + ' transaksi)');
         results.transactions.push(...txs);
       } else if (file.toLowerCase().includes('jurnal bayar')) {
-        const txs = parseJurnalBayar(db, filePath, file);
+        const txs = await parseJurnalBayar(db, filePath, file);
         results.files_processed.push('JurnalBayar: ' + file + ' (' + txs.length + ' transaksi)');
         results.transactions.push(...txs);
       } else if (file.toLowerCase().includes('aksesories')) {
-        const total = parseAksesories(db, filePath, file);
+        const total = await parseAksesories(db, filePath, file);
         results.files_processed.push('Aksesories: ' + file + ' (nilai Rp ' + total.toLocaleString() + ')');
         if (total > 0) {
-          const txId = createTx(db, new Date().getFullYear() + '-01-01', 'Persediaan Bahan Instalasi (Asesoris & Water Meter)', [
+          const txId = await createTx(db, new Date().getFullYear() + '-01-01', 'Persediaan Bahan Instalasi (Asesoris & Water Meter)', [
             { kode: '15.03.00', debit: total, kredit: 0 },
             { kode: '71.01.00', debit: 0, kredit: total }
           ], file);
@@ -241,7 +241,7 @@ function bulkImport(db, inputDir) {
         const data = parsePersediaanKimia(filePath);
         results.files_processed.push('PersediaanKimia: ' + file);
         if (data.total > 0) {
-          const txId = createTx(db, new Date().getFullYear() + '-01-01', 'Persediaan Bahan Kimia & BBM', [
+          const txId = await createTx(db, new Date().getFullYear() + '-01-01', 'Persediaan Bahan Kimia & BBM', [
             { kode: '15.01.00', debit: data.total, kredit: 0 },
             { kode: '71.01.00', debit: 0, kredit: data.total }
           ], file);
@@ -253,7 +253,7 @@ function bulkImport(db, inputDir) {
       } else if (file.toLowerCase().includes('aktiva tetap')) {
         results.files_processed.push('AktivaTetap: ' + file + ' (data aset)');
       } else if (file.toLowerCase().includes('pembalik')) {
-        const txs = parseJurnalPembalik(db, filePath, file);
+        const txs = await parseJurnalPembalik(db, filePath, file);
         results.files_processed.push('JurnalPembalik: ' + file + ' (' + txs.length + ' transaksi)');
         results.transactions.push(...txs);
       }

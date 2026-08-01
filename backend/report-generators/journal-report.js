@@ -35,10 +35,10 @@ function formatRupiah(val) {
   return val;
 }
 
-function generateJournal(db, outputPath) {
+async function generateJournal(db, outputPath, exportDate = null) {
   const wb = XLSX.utils.book_new();
 
-  const transactions = db.queryAll(`
+  const transactions = await db.queryAll(`
     SELECT t.*, GROUP_CONCAT(
       '{"akun_id":' || j.akun_id || ',"akun_nama":"' || a.nama || '","akun_kode":"' || a.kode || '","debit":' || j.debit || ',"kredit":' || j.kredit || '}'
     ) as jurnal

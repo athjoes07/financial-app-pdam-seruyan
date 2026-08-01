@@ -52,7 +52,7 @@ const GROUPED_ACCOUNTS = [
   { sheetName: '98.00', title: 'Beban Luar Usaha', kodeStart: '98.00', kodeEnd: '98.99', kodePattern: /^98\./ },
 ];
 
-function generateBukuBesar(db, outputPath) {
+async function generateBukuBesar(db, outputPath, exportDate = null) {
   const wb = XLSX.utils.book_new();
 
   const now = new Date();
@@ -60,13 +60,13 @@ function generateBukuBesar(db, outputPath) {
 
   // Detect month from transactions
   let bulanNama = 'MEI';
-  const firstTx = db.queryOne('SELECT tanggal FROM transaksi ORDER BY tanggal ASC LIMIT 1');
+  const firstTx = await db.queryOne('SELECT tanggal FROM transaksi ORDER BY tanggal ASC LIMIT 1');
   if (firstTx && firstTx.tanggal && firstTx.tanggal.length >= 7) {
     bulanNama = formatMonthYear(firstTx.tanggal.substring(5, 7));
   }
 
   for (const group of GROUPED_ACCOUNTS) {
-    const accounts = db.queryAll(`
+    const accounts = await db.queryAll(`
       SELECT a.* FROM akun a 
       WHERE a.kode LIKE ? || '%'
       ORDER BY a.kode
@@ -99,7 +99,7 @@ function generateBukuBesar(db, outputPath) {
     // Get all entries for all matching accounts
     const allEntries = [];
     for (const a of matchingAccounts) {
-      const entries = db.queryAll(`
+      const entries = await db.queryAll(`
         SELECT t.tanggal, t.deskripsi, j.debit, j.kredit, a.kode as akun_kode, a.nama as akun_nama, a.saldo_normal
         FROM jurnal j
         JOIN transaksi t ON t.id = j.transaksi_id
