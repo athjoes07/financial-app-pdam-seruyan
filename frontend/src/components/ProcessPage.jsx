@@ -8,8 +8,6 @@ export default function ProcessPage() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [uploadStatus, setUploadStatus] = useState('')
-  const [viewMode, setViewMode] = useState('input')
-  const [trashFiles, setTrashFiles] = useState([])
   const [downloadFormat, setDownloadFormat] = useState('xls')
   const [processTab, setProcessTab] = useState('input')
   const [exportDate, setExportDate] = useState(() => {
@@ -22,23 +20,11 @@ export default function ProcessPage() {
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewSheet, setPreviewSheet] = useState('')
   const [previewSource, setPreviewSource] = useState('')
-  const [selectedFiles, setSelectedFiles] = useState([])
   const fileInputRef = useRef(null)
 
   useEffect(() => {
     fetchFileList()
-    fetchTrashList()
   }, [])
-
-  async function fetchTrashList() {
-    try {
-      const res = await fetch(`${API_URL}/api/process/trash-files`)
-      const data = await res.json()
-      if (Array.isArray(data)) setTrashFiles(data)
-    } catch (err) {
-      console.error('Error fetching trash list:', err)
-    }
-  }
 
   async function fetchFileList() {
     try {
@@ -140,30 +126,6 @@ export default function ProcessPage() {
     }
   }
 
-  async function handleRestoreTrash(filename) {
-    if (!window.confirm(`Yakin ingin memulihkan ${filename}?`)) return
-    try {
-      const res = await fetch(`${API_URL}/api/process/restore-trash/${encodeURIComponent(filename)}`, { method: 'POST' })
-      const data = await res.json()
-      window.alert(data.message)
-      fetchFileList()
-      fetchTrashList()
-    } catch (err) {
-      window.alert('Gagal memulihkan file: ' + err.message)
-    }
-  }
-
-  async function handleDeleteTrash(filename) {
-    if (!window.confirm(`Yakin ingin menghapus secara PERMANEN file ${filename} beserta seluruh datanya? Tindakan ini tidak dapat dibatalkan.`)) return
-    try {
-      const res = await fetch(`${API_URL}/api/process/delete-trash/${encodeURIComponent(filename)}`, { method: 'DELETE' })
-      const data = await res.json()
-      window.alert(data.message)
-      fetchTrashList()
-    } catch (err) {
-      window.alert('Gagal menghapus permanen: ' + err.message)
-    }
-  }
 
   async function handleDownloadOutput(filename, format) {
     const endpoint = format === 'pdf'
@@ -255,15 +217,9 @@ export default function ProcessPage() {
               <button
                 className="btn btn-primary"
                 onClick={handleProcess}
-                disabled={loading || viewMode === 'trash'}
+                disabled={loading}
               >
                 {loading ? '⚡ Memproses...' : '🚀 Proses Sekarang'}
-              </button>
-              <button 
-                className="btn btn-secondary btn-sm" 
-                onClick={() => setViewMode(viewMode === 'input' ? 'trash' : 'input')}
-              >
-                {viewMode === 'input' ? '🗑️ Tempat Sampah' : '📁 File Aktif'}
               </button>
             </div>
           </div>
@@ -542,62 +498,7 @@ export default function ProcessPage() {
         </>
       )}
 
-      {viewMode === 'trash' && (
-        <div className="card" style={{ marginTop: '1rem' }}>
-          <div className="card-header">
-            <h3 className="card-title">🗑️ Tempat Sampah ({trashFiles.length})</h3>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Daftar file input yang telah dihapus.
-            </p>
-          </div>
-          {trashFiles.length > 0 ? (
-            <div className="table-wrap">
-              <table className="table-modern">
-                <thead>
-                  <tr>
-                    <th>Nama File</th>
-                    <th>Waktu Dihapus</th>
-                    <th className="text-right">Ukuran</th>
-                    <th className="text-center" style={{ width: '220px' }}>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {trashFiles.map((f, i) => (
-                    <tr key={i}>
-                      <td>📄 {f.filename}</td>
-                      <td style={{ fontSize: '0.8rem' }}>{new Date(f.modified).toLocaleString('id-ID')}</td>
-                      <td className="text-right font-mono" style={{ fontSize: '0.8rem' }}>{(f.size / 1024).toFixed(1)} KB</td>
-                      <td className="text-center" style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
-                        <button 
-                          onClick={() => handleRestoreTrash(f.filename)}
-                          className="btn btn-primary btn-sm"
-                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                          title="Pulihkan file kembali ke File Aktif"
-                        >
-                          ♻️ Pulihkan
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteTrash(f.filename)}
-                          className="btn btn-danger btn-sm"
-                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                          title="Hapus file dan semua transaksinya secara permanen dari sistem"
-                        >
-                          🔥 Hapus Permanen
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <div className="empty-state-icon">🗑️</div>
-              <div className="empty-state-text">Tempat sampah kosong</div>
-            </div>
-          )}
-        </div>
-      )}
+
 
       {/* Excel Preview Modal */}
       {previewData && (
