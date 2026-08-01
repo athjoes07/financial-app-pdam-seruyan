@@ -24,14 +24,20 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
   const dbFilesMap = {};
   dbInputFiles.forEach(f => dbFilesMap[f.sumber] = true);
 
-  const allFiles = new Set([...physicalFiles, ...Object.keys(dbFilesMap)]);
-  const sortedFiles = Array.from(allFiles).sort();
+  // Determine which physical files have already been imported (appear in transaksi)
+  const processedSet = new Set();
+  for (const f of physicalFiles) {
+    const countRes = await db.queryOne('SELECT COUNT(*) as cnt FROM transaksi WHERE sumber = ?', [f]);
+    if (countRes?.cnt > 0) processedSet.add(f);
+  }
+
+  // Use only the physical files (the ones you just uploaded) for the map
+  const sortedFiles = physicalFiles.sort();
 
   let no = 1;
   let processedCount = 0;
   for (const f of sortedFiles) {
-    if (dbFilesMap[f]) {
-      const txCount = await db.queryOne('SELECT COUNT(*) as cnt FROM transaksi WHERE sumber = ?', [f]);
+    if (processedSet.has(f)) {
       inputFileMap.push([no++, f, 'Sheet0', 'Semua baris', '-', '-', 'Input ke DB', 'TERPROSES']);
       processedCount++;
     } else {
@@ -44,6 +50,7 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
   }
   inputFileMap.push(['', '', '', '', '', '', '', '']);
   inputFileMap.push(['TOTAL FILE INPUT', sortedFiles.length + ' file (' + processedCount + ' diproses)', '', '', '', '', '', '']);
+
 
   const inputFileSheet = XLSX.utils.aoa_to_sheet(inputFileMap);
   inputFileSheet['!cols'] = [{ wch: 5 }, { wch: 35 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 35 }, { wch: 35 }, { wch: 15 }];
@@ -102,10 +109,10 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
   outputFileMap.push(['No', 'Nama File Output', 'Tab Sheet', 'Cell / Rentang', 'Konten', 'Data Input Sumber', 'Keterangan']);
 
   const outputFiles = [
-    ['BUKU BESAR 2026.xlsx', '19 sheets/akun', 'A1:F8', 'Header + Detail transaksi', 'Jurnal DB', 'Buku besar per akun'],
-    ['Journal 2026.xlsx', '20 sheets', 'A1:K7+', 'Header + List jurnal', 'Jurnal DB', 'Jurnal umum & voucher'],
-    ['Neraca Lajur 2026.xlsx', '5 sheets (Jan-Mei)', 'A1:L7+', 'Neraca saldo per bulan', 'Jurnal DB', 'Neraca lajur bulanan'],
-    ['Neraca, RL, Arus Kas.xlsx', '20 sheets', 'A1:H30+', 'Laporan keuangan', 'Jurnal DB', 'Laporan finansial'],
+    ['BUKU BESAR.xlsx', '19 sheets/akun', 'A1:F8', 'Header + Detail transaksi', 'Jurnal DB', 'Buku besar per akun'],
+    ['JOURNAL.xlsx', '20 sheets', 'A1:K7+', 'Header + List jurnal', 'Jurnal DB', 'Jurnal umum & voucher'],
+    ['NERACA LAJUR.xlsx', '5 sheets (Jan-Mei)', 'A1:L7+', 'Neraca saldo per bulan', 'Jurnal DB', 'Neraca lajur bulanan'],
+    ['NERACA, RL, ARUS KAS, EKUITAS & RINCIAN.xlsx', '20 sheets', 'A1:H30+', 'Laporan keuangan', 'Jurnal DB', 'Laporan finansial'],
     ['AUDIT_TRAIL.xlsx', '6 sheets', 'A1:K5+', 'Audit trail lengkap', 'Semua data', 'Input map, jurnal audit, COA usage'],
   ];
 
