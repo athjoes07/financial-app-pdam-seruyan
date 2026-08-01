@@ -250,11 +250,10 @@ module.exports = function (db) {
   router.get('/download/:filename', async (req, res) => {
     try {
       const fname = decodeURIComponent(req.params.filename);
-      // Prefer static sample output for exact appearance
-      let filePath = path.join(sampleOutputDir, fname);
+      // Prefer the generated report (output‑app) first, fall back to the static sample if missing
+      let filePath = path.join(outputDir, fname);
       if (!fs.existsSync(filePath)) {
-        // Fallback to generated file
-        filePath = path.join(outputDir, fname);
+        filePath = path.join(sampleOutputDir, fname);
       }
       if (!fs.existsSync(filePath)) {
         return res.status(404).send('File tidak ditemukan');
