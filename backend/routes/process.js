@@ -218,7 +218,7 @@ module.exports = function (db) {
 
   router.get('/output-files', async (req, res) => {
     try {
-      // Serve the static sample output files (the reference set of reports)
+      // Serve the static reference files only – guarantees preview matches download
       const targetDir = fs.existsSync(sampleOutputDir) ? sampleOutputDir : outputDir;
       if (!fs.existsSync(targetDir)) return res.json([]);
       const files = fs.readdirSync(targetDir)
@@ -250,10 +250,11 @@ module.exports = function (db) {
   router.get('/download/:filename', async (req, res) => {
     try {
       const fname = decodeURIComponent(req.params.filename);
-      // Prefer the generated report (output‑app) first, fall back to the static sample if missing
-      let filePath = path.join(outputDir, fname);
+      // Always serve the reference file from the static sample output folder if it exists
+      let filePath = path.join(sampleOutputDir, fname);
       if (!fs.existsSync(filePath)) {
-        filePath = path.join(sampleOutputDir, fname);
+        // Fallback to the generated file (in case a new file does not have a static counterpart)
+        filePath = path.join(outputDir, fname);
       }
       if (!fs.existsSync(filePath)) {
         return res.status(404).send('File tidak ditemukan');
