@@ -565,15 +565,27 @@ module.exports = function (db) {
         return res.status(404).json({ error: 'File tidak ditemukan: ' + fname });
       }
 
-      const wb = XLSX.readFile(filePath);
+      const wb = XLSX.readFile(filePath, { type: 'buffer' });
       const sheets = {};
 
       for (const sheetName of wb.SheetNames) {
         const ws = wb.Sheets[sheetName];
-      // Convert sheet to 2‑D array preserving empty cells
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null }).slice(0, maxRows);
-      const totalRows = Math.min(rows.length, maxRows);
-      const totalCols = rows[0] ? rows[0].length : 0;
+        const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+        const rows = [];
+        const totalRows = Math.min(range.e.r + 1, maxRows);
+
+        for (let r = 0; r < totalRows; r++) {
+          const row = [];
+          for (let c = 0; c <= range.e.c; c++) {
+            const addr = XLSX.utils.encode_cell({ r, c });
+            const cell = ws[addr];
+            let val = cell ? cell.v : null;
+            if (cell && cell.t === 'd' && cell.w) val = cell.w;
+            if (val === undefined || val === null) val = null;
+            row.push(val);
+          }
+          rows.push(row);
+        }
 
         sheets[sheetName] = {
           rows,
