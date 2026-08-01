@@ -138,6 +138,18 @@ export default function ProcessPage() {
     }
   }
 
+  async function handleDeleteTrash(filename) {
+    if (!window.confirm(`Yakin ingin menghapus secara PERMANEN file ${filename} beserta seluruh datanya? Tindakan ini tidak dapat dibatalkan.`)) return
+    try {
+      const res = await fetch(`${API_URL}/api/process/delete-trash/${encodeURIComponent(filename)}`, { method: 'DELETE' })
+      const data = await res.json()
+      window.alert(data.message)
+      fetchTrashList()
+    } catch (err) {
+      window.alert('Gagal menghapus permanen: ' + err.message)
+    }
+  }
+
   async function handleDownloadOutput(filename, format) {
     const endpoint = format === 'pdf'
       ? `${API_URL}/api/process/download-pdf/${encodeURIComponent(filename)}`
@@ -553,7 +565,7 @@ export default function ProcessPage() {
                     <th>Nama File</th>
                     <th>Waktu Dihapus</th>
                     <th className="text-right">Ukuran</th>
-                    <th className="text-center" style={{ width: '120px' }}>Aksi</th>
+                    <th className="text-center" style={{ width: '220px' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -562,13 +574,22 @@ export default function ProcessPage() {
                       <td>📄 {f.filename}</td>
                       <td style={{ fontSize: '0.8rem' }}>{new Date(f.modified).toLocaleString('id-ID')}</td>
                       <td className="text-right font-mono" style={{ fontSize: '0.8rem' }}>{(f.size / 1024).toFixed(1)} KB</td>
-                      <td className="text-center">
+                      <td className="text-center" style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
                         <button 
                           onClick={() => handleRestoreTrash(f.filename)}
                           className="btn btn-primary btn-sm"
                           style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                          title="Pulihkan file kembali ke File Aktif"
                         >
                           ♻️ Pulihkan
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteTrash(f.filename)}
+                          className="btn btn-danger btn-sm"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                          title="Hapus file dan semua transaksinya secara permanen dari sistem"
+                        >
+                          🔥 Hapus Permanen
                         </button>
                       </td>
                     </tr>

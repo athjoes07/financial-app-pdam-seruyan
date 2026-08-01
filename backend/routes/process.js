@@ -48,7 +48,7 @@ module.exports = function (db) {
       // Also clean up any remaining orphan journal entries just in case
       await db.queryRun('DELETE FROM jurnal WHERE transaksi_id NOT IN (SELECT id FROM transaksi)');
 
-      if (typeof await db.insertAuditLog === 'function' && beforeTxs.length > 0) {
+      if (typeof db.insertAuditLog === 'function' && beforeTxs.length > 0) {
         await db.insertAuditLog('DELETE', fname, 'Hapus Data ' + fname, 'SUCCESS', 'Dihapus ' + beforeTxs.length + ' transaksi', beforeState, null);
       }
       
@@ -58,7 +58,11 @@ module.exports = function (db) {
       }
 
       // Delete from Supabase Storage
-      await supabase.storage.from('pdam-storage').remove([`excel/${fname}`]);
+      const { data: rmData, error: rmError } = await supabase.storage.from('pdam-storage').remove([`excel/${fname}`]);
+      if (rmError) {
+        console.error("Failed to remove from Supabase:", rmError);
+        throw new Error("Gagal menghapus file dari Cloud Storage: " + rmError.message);
+      }
 
       // Move local file to trash if exists
       if (fs.existsSync(filePath)) {
@@ -109,6 +113,42 @@ module.exports = function (db) {
       await supabase.storage.from('pdam-storage').upload(`excel/${fname}`, buffer, { upsert: true });
 
       res.json({ message: 'File berhasil dipulihkan ke folder input' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.delete('/delete-trash/:filename', async (req, res) => {
+    try {
+      const fname = decodeURIComponent(req.params.filename);
+      const trashPath = path.join(inputTrashDir, fname);
+
+      // Just to be absolutely sure, delete transactions AND related jurnal from database
+      try {
+        await db.queryRun('PRAGMA foreign_keys = ON');
+      } catch (e) {}
+      
+      await db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ?)', [fname]);
+      await db.queryRun('DELETE FROM transaksi WHERE sumber = ?', [fname]);
+      await db.queryRun('DELETE FROM jurnal WHERE transaksi_id NOT IN (SELECT id FROM transaksi)');
+      
+      // Sync DB state to Supabase
+      if (typeof db.saveDbAsync === 'function') {
+        await db.saveDbAsync();
+      }
+
+      // Delete from Supabase Storage just in case it wasn't deleted
+      const { error: rmError } = await supabase.storage.from('pdam-storage').remove([`excel/${fname}`]);
+      if (rmError) {
+        console.error("Failed to remove from Supabase in delete-trash:", rmError);
+      }
+
+      // Permanently delete local file from trash
+      if (fs.existsSync(trashPath)) {
+        fs.unlinkSync(trashPath);
+      }
+
+      res.json({ message: 'File dan seluruh data terkait telah dihapus secara permanen dari sistem.', deleted: true });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
