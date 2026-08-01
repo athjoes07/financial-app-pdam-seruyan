@@ -161,10 +161,19 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
 
   if (akunUnused > 0) {
     const unusedAkunRows = await db.queryAll('SELECT kode, nama FROM akun WHERE id NOT IN (SELECT DISTINCT akun_id FROM jurnal) ORDER BY kode');
-    const unusedListStr = unusedAkunRows.map(a => `${a.kode} - ${a.nama}`).join('\n');
-    const penjelasanUnused = `${akunUnused} akun di master COA belum pernah digunakan dalam transaksi apapun sepanjang periode ini.`;
+    const penjelasanUnused = `Akun di master COA belum pernah digunakan dalam transaksi apapun sepanjang periode ini.`;
     
-    dataTidakMasuk.push([dtmNo++, 'Akun tanpa transaksi', 'COA Master', 'Tidak ada pergerakan/jurnal', penjelasanUnused, unusedListStr, 'Buat transaksi (Penerimaan/Pengeluaran/Jurnal Umum) yang melibatkan kode akun ini agar datanya muncul di laporan Neraca/Laba Rugi.']);
+    for (const a of unusedAkunRows) {
+      dataTidakMasuk.push([
+        dtmNo++, 
+        'Akun tanpa transaksi', 
+        'COA Master', 
+        'Tidak ada pergerakan/jurnal', 
+        penjelasanUnused, 
+        `${a.kode} - ${a.nama}`, 
+        'Buat transaksi (Penerimaan/Pengeluaran/Jurnal Umum) yang melibatkan kode akun ini agar datanya muncul di laporan Neraca/Laba Rugi.'
+      ]);
+    }
   }
 
   if (dtmNo === 1) {
