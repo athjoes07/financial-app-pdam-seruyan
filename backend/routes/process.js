@@ -25,22 +25,30 @@ module.exports = function (db) {
       const fname = decodeURIComponent(req.params.filename);
       const filePath = path.join(inputDir, fname);
 
-      // 1. Delete from database — jurnal first (FK constraint), then transaksi
-      await db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = $1)', [fname]);
-      await db.queryRun('DELETE FROM transaksi WHERE sumber = $1', [fname]);
-      // Clean up any orphan jurnal just in case
-      await db.queryRun('DELETE FROM jurnal WHERE transaksi_id NOT IN (SELECT id FROM transaksi)');
+      // 1. Delete jurnal terkait file ini terlebih dahulu (ON DELETE CASCADE juga akan hapus otomatis)
+      const jurnalResult = await db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ?)', [fname]);
+      const jurnalDeleted = jurnalResult ? jurnalResult.rowCount : 0;
 
-      // 2. Permanently delete from Supabase Storage (ignore error if file already gone)
+      // 2. Delete transaksi (jurnal akan ikut terhapus via CASCADE jika ada yang tersisa)
+      const txResult = await db.queryRun('DELETE FROM transaksi WHERE sumber = ?', [fname]);
+      const txDeleted = txResult ? txResult.rowCount : 0;
+
+      console.log(`[DELETE] File: ${fname} | Transaksi dihapus: ${txDeleted} | Jurnal dihapus: ${jurnalDeleted}`);
+
+      // 3. Hapus dari Supabase Storage (abaikan error jika file sudah tidak ada)
       const { error: rmError } = await supabase.storage.from('pdam-storage').remove([`excel/${fname}`]);
       if (rmError) console.warn('[DELETE] Supabase Storage warning:', rmError.message);
 
-      // 3. Delete local file if exists
+      // 4. Hapus file lokal jika ada
       if (fs.existsSync(filePath)) {
         try { fs.unlinkSync(filePath); } catch(e) {}
       }
 
-      res.json({ message: `File "${fname}" berhasil dihapus permanen dari sistem.`, deleted: true });
+      res.json({
+        message: `File "${fname}" berhasil dihapus permanen dari sistem.`,
+        deleted: true,
+        dbDeleted: { transaksi: txDeleted, jurnal: jurnalDeleted }
+      });
     } catch (err) {
       console.error('[DELETE] Error:', err.message);
       res.status(500).json({ error: err.message });

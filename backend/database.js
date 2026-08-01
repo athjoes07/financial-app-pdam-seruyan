@@ -38,7 +38,8 @@ async function queryOne(sql, params = []) {
 async function run(sql, params = []) {
   const client = await pool.connect();
   try {
-    await client.query(transpileSql(sql), params);
+    const result = await client.query(transpileSql(sql), params);
+    return result; // return full result including rowCount
   } finally {
     client.release();
   }

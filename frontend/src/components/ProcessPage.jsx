@@ -99,12 +99,15 @@ export default function ProcessPage() {
   }
 
   async function handleDeleteInput(filename) {
-    if (!window.confirm(`Yakin ingin menghapus ${filename}?`)) return
+    if (!window.confirm(`Yakin ingin menghapus ${filename}?\nData transaksi terkait file ini juga akan dihapus dari database.`)) return
     try {
       const res = await fetch(`${API_URL}/api/process/delete-input/${encodeURIComponent(filename)}`, { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal menghapus file')
-      // Immediately remove from UI — do NOT re-fetch (Supabase cache causes file to reappear)
+      const txCount = data.dbDeleted ? data.dbDeleted.transaksi : '?'
+      const jCount = data.dbDeleted ? data.dbDeleted.jurnal : '?'
+      console.log(`[DELETE] ${filename}: ${txCount} transaksi, ${jCount} jurnal dihapus dari DB`)
+      // Immediately remove from UI
       setInputFiles(prev => prev.filter(f => f.filename !== filename))
     } catch (err) {
       window.alert('Gagal menghapus file: ' + err.message)
