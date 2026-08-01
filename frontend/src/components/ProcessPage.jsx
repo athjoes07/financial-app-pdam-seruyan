@@ -125,6 +125,21 @@ export default function ProcessPage() {
     }
   }
 
+  async function handleDeleteAllInput() {
+    if (inputFiles.length === 0) return window.alert('Tidak ada file input untuk dihapus.')
+    if (!window.confirm(`Yakin ingin menghapus SEMUA ${inputFiles.length} file input beserta seluruh data transaksinya? Tindakan ini tidak dapat dibatalkan.`)) return
+    try {
+      const res = await fetch(`${API_URL}/api/process/delete-all-input`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Terjadi kesalahan')
+      window.alert(data.message)
+      fetchFileList()
+      fetchTrashList()
+    } catch (err) {
+      window.alert('Gagal menghapus semua file: ' + err.message)
+    }
+  }
+
   async function handleRestoreTrash(filename) {
     if (!window.confirm(`Yakin ingin memulihkan ${filename}?`)) return
     try {
@@ -307,17 +322,28 @@ export default function ProcessPage() {
         <div className={`card process-card-input${processTab === 'input' ? ' process-card-active' : ''}`}>
           <div className="card-header">
             <h3 className="card-title">📂 Input ({inputFiles.length})</h3>
-            <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
-              ➕ Upload
-              <input 
-                type="file" 
-                accept=".xls,.xlsx" 
-                multiple 
-                onChange={handleFileUpload} 
-                style={{ display: 'none' }} 
-                ref={fileInputRef}
-              />
-            </label>
+            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+              {inputFiles.length > 0 && (
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={handleDeleteAllInput}
+                  title="Hapus semua file input dan data transaksinya"
+                >
+                  🗑️ Hapus Semua
+                </button>
+              )}
+              <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
+                ➕ Upload
+                <input 
+                  type="file" 
+                  accept=".xls,.xlsx" 
+                  multiple 
+                  onChange={handleFileUpload} 
+                  style={{ display: 'none' }} 
+                  ref={fileInputRef}
+                />
+              </label>
+            </div>
           </div>
 
           {uploadStatus && <div className="alert alert-info" style={{ fontSize: '0.8rem' }}>{uploadStatus}</div>}

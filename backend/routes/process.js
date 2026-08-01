@@ -75,6 +75,46 @@ module.exports = function (db) {
     }
   });
 
+  router.delete('/delete-all-input', async (req, res) => {
+    try {
+      // 1. Get all files from Supabase Storage
+      const { data: storageFiles, error: listError } = await supabase.storage.from('pdam-storage').list('excel');
+      if (listError) throw listError;
+
+      const filenames = (storageFiles || [])
+        .filter(f => f.name !== '.emptyFolderPlaceholder' && /\.xlsx?$/i.test(f.name))
+        .map(f => f.name);
+
+      // 2. Delete all transactions & journals from database
+      try { await db.queryRun('PRAGMA foreign_keys = ON'); } catch(e) {}
+      await db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ANY($1::text[]))', [filenames]);
+      await db.queryRun('DELETE FROM transaksi WHERE sumber = ANY($1::text[])', [filenames]);
+      await db.queryRun('DELETE FROM jurnal WHERE transaksi_id NOT IN (SELECT id FROM transaksi)');
+
+      if (typeof db.saveDbAsync === 'function') await db.saveDbAsync();
+
+      // 3. Delete all files from Supabase Storage
+      const storagePaths = filenames.map(f => `excel/${f}`);
+      if (storagePaths.length > 0) {
+        await supabase.storage.from('pdam-storage').remove(storagePaths);
+      }
+
+      // 4. Move local files to trash
+      if (!fs.existsSync(inputTrashDir)) fs.mkdirSync(inputTrashDir, { recursive: true });
+      if (fs.existsSync(inputDir)) {
+        const localFiles = fs.readdirSync(inputDir).filter(f => /\.xlsx?$/i.test(f));
+        for (const f of localFiles) {
+          const src = path.join(inputDir, f);
+          const dst = path.join(inputTrashDir, f);
+          try { fs.renameSync(src, dst); } catch(e) {}
+        }
+      }
+
+      res.json({ message: `Berhasil menghapus ${filenames.length} file input beserta seluruh data transaksinya.`, count: filenames.length });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
   router.get('/trash-files', async (req, res) => {
     try {
       if (!fs.existsSync(inputTrashDir)) return res.json([]);
