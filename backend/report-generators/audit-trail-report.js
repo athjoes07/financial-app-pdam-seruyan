@@ -1,6 +1,6 @@
 const XLSX = require('xlsx-js-style');
 
-async function generateAuditTrail(db, outputPath, exportDate = null) {
+async function generateAuditTrail(db, outputPath) {
   const wb = XLSX.utils.book_new();
 
   const now = new Date();
@@ -45,25 +45,15 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
               const wbTmp = XLSX.readFile(path.join(inputDir, f));
               const wsTmp = wbTmp.Sheets[wbTmp.SheetNames[0]];
               const rangeTmp = XLSX.utils.decode_range(wsTmp['!ref'] || 'A1');
-              // Header row (first row)
-              const headerVals = [];
-              for (let c = rangeTmp.s.c; c <= rangeTmp.e.c; c++) {
-                const addr = XLSX.utils.encode_cell({ r: rangeTmp.s.r, c });
-                const cell = wsTmp[addr];
-                if (cell && cell.v != null) headerVals.push(String(cell.v).trim());
-              }
-              colNames = headerVals.filter(v => v).join(', ');
-              // Sample data row (second row if exists)
-              const dataRow = rangeTmp.s.r + 1;
-              if (dataRow <= rangeTmp.e.r) {
-                const sampleVals = [];
-                for (let c = rangeTmp.s.c; c <= rangeTmp.e.c; c++) {
-                  const addr = XLSX.utils.encode_cell({ r: dataRow, c });
-                  const cell = wsTmp[addr];
-                  if (cell && cell.v != null) sampleVals.push(String(cell.v).trim());
-                }
-                sampleData = sampleVals.filter(v => v).join(', ');
-              }
+              // Header row (first row) – we will report column range only
+              const startCol = String.fromCharCode(65 + rangeTmp.s.c);
+              const endCol = String.fromCharCode(65 + rangeTmp.e.c);
+              const colRange = `${startCol}:${endCol}`;
+              colNames = colRange;
+              // Sample data row (second row if exists) – we will report row range of actual data
+              const firstDataRow = rangeTmp.s.r + 2; // Excel rows are 1‑based; header is row 1
+              const lastDataRow = rangeTmp.e.r + 1;
+              sampleData = `${firstDataRow}-${lastDataRow}`;
             } catch (e) {
               // keep placeholders if reading fails
             }
