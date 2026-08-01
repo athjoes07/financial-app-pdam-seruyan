@@ -12,6 +12,7 @@ const LAST_DAY = { JANUARI: '31', FEBRUARI: '28', MARET: '31', APRIL: '30', MEI:
 
 async function generateNeracaLajur(db, outputPath, exportDate = null) {
   const wb = XLSX.utils.book_new();
+  const tahunCetak = exportDate ? new Date(exportDate).getFullYear() : new Date().getFullYear();
 
   const akunList = await db.queryAll('SELECT * FROM akun ORDER BY kode');
 

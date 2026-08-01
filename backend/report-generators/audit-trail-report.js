@@ -20,7 +20,7 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
     physicalFiles = fs.readdirSync(inputDir).filter(f => /\.(xls|xlsx)$/i.test(f) && !f.startsWith('~$'));
   } catch(e) {}
 
-  const dbInputFiles = await db.queryAll('SELECT DISTINCT sumber FROM transaksi WHERE sumber != "" ORDER BY sumber');
+  const dbInputFiles = await db.queryAll("SELECT DISTINCT sumber FROM transaksi WHERE sumber != '' ORDER BY sumber");
   const dbFilesMap = {};
   dbInputFiles.forEach(f => dbFilesMap[f.sumber] = true);
 
