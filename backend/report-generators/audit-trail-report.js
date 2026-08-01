@@ -14,7 +14,7 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
 
   const fs = require('fs');
   const path = require('path');
-  const inputDir = path.join(path.dirname(outputPath), '..');
+  const inputDir = path.join(path.dirname(outputPath), '..', 'penyimpanan');
   let physicalFiles = [];
   try {
     physicalFiles = fs.readdirSync(inputDir).filter(f => /\.(xls|xlsx)$/i.test(f) && !f.startsWith('~$'));
