@@ -371,8 +371,8 @@ module.exports = function (db) {
     try {
       await syncExcelFilesFromSupabase();
       
-      const result1 = processInputFiles(db, inputDir);
-      const result2 = bulkImport(db, inputDir);
+      const result1 = await processInputFiles(db, inputDir);
+      const result2 = await bulkImport(db, inputDir);
 
       const combined = {
         files_processed: [...result1.files_processed, ...result2.files_processed],
@@ -393,7 +393,7 @@ module.exports = function (db) {
   router.post('/generate', async (req, res) => {
     try {
       const { exportDate } = req.body || {};
-      const results = generateAllReports(db, outputDir, exportDate);
+      const results = await generateAllReports(db, outputDir, exportDate);
       res.json({ output_dir: outputDir, results });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -413,7 +413,7 @@ module.exports = function (db) {
   router.post('/bulk-import', async (req, res) => {
     try {
       await syncExcelFilesFromSupabase();
-      const result = bulkImport(db, inputDir);
+      const result = await bulkImport(db, inputDir);
       
       if (typeof db.saveDbAsync === 'function') {
         await db.saveDbAsync();
@@ -430,9 +430,9 @@ module.exports = function (db) {
       const { exportDate } = req.body || {};
       await syncExcelFilesFromSupabase();
       
-      const bulkResult = bulkImport(db, inputDir);
-      const processResult = processInputFiles(db, inputDir);
-      const reportResults = generateAllReports(db, outputDir, exportDate);
+      const bulkResult = await bulkImport(db, inputDir);
+      const processResult = await processInputFiles(db, inputDir);
+      const reportResults = await generateAllReports(db, outputDir, exportDate);
 
       if (typeof db.saveDbAsync === 'function') {
         await db.saveDbAsync();
