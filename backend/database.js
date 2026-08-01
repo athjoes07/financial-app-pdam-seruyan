@@ -3,8 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const COA = require('./coa-master');
+const { supabase } = require('./supabase-client');
 
-// Use /tmp for cloud environments (firebase functions), local dir otherwise
+// Use /tmp for cloud environments (firebase functions, vercel), local dir otherwise
 const DB_DIR = process.env.FUNCTIONS_EMULATOR ? __dirname :
   (process.env.K_SERVICE || process.env.VERCEL ? '/tmp' : __dirname);
 const DB_PATH = path.join(DB_DIR, 'finance.db');
@@ -34,6 +35,7 @@ function queryOne(sql, params = []) {
 
 function run(sql, params = []) {
   db.run(sql, params);
+  // We STILL save locally synchronously so subsequent operations in the same request can see it
   saveDb();
 }
 
@@ -42,11 +44,26 @@ async function initDatabase() {
     locateFile: file => path.join(__dirname, '..', 'node_modules', 'sql.js', 'dist', file)
   });
 
-  if (fs.existsSync(DB_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    db = new SQL.Database(fileBuffer);
+  console.log('Downloading finance.db from Supabase...');
+  // Try to download the DB from Supabase
+  const { data: fileData, error: downloadError } = await supabase.storage
+    .from('pdam-storage')
+    .download('db/finance.db');
+
+  if (fileData && !downloadError) {
+    console.log('Successfully downloaded finance.db from Supabase');
+    const arrayBuffer = await fileData.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    fs.writeFileSync(DB_PATH, buffer);
+    db = new SQL.Database(buffer);
   } else {
-    db = new SQL.Database();
+    console.log('No existing DB in Supabase or failed to download. Using local/new DB.', downloadError?.message);
+    if (fs.existsSync(DB_PATH)) {
+      const fileBuffer = fs.readFileSync(DB_PATH);
+      db = new SQL.Database(fileBuffer);
+    } else {
+      db = new SQL.Database();
+    }
   }
 
   db.run(`
@@ -146,7 +163,29 @@ async function initDatabase() {
     return hash;
   };
 
+  // ASYNC UPLOAD FUNCTION TO SYNC WITH SUPABASE
+  db.saveDbAsync = async function() {
+    console.log('Uploading finance.db to Supabase...');
+    const data = db.export();
+    const buffer = Buffer.from(data);
+    
+    const { error } = await supabase.storage
+      .from('pdam-storage')
+      .upload('db/finance.db', buffer, {
+        upsert: true,
+        contentType: 'application/x-sqlite3'
+      });
+      
+    if (error) {
+      console.error('Error uploading database to Supabase:', error);
+      throw error;
+    } else {
+      console.log('Successfully synced finance.db to Supabase');
+    }
+  };
+
   return db;
 }
 
 module.exports = { initDatabase, queryAll, queryOne, run };
+

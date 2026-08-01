@@ -5,6 +5,7 @@ const { processInputFiles } = require('../engine/process-input');
 const { bulkImport } = require('../engine/bulk-import');
 const { generateAllReports } = require('../report-generators');
 const { initDatabase } = require('../database');
+const { supabase } = require('../supabase-client');
 
 module.exports = function (db) {
   const router = express.Router();
@@ -16,23 +17,14 @@ module.exports = function (db) {
   const sampleOutputDir = isServerless ? '/tmp' : path.join(baseDir, 'output');
 
   if (!fs.existsSync(inputTrashDir)) fs.mkdirSync(inputTrashDir, { recursive: true });
+  if (!fs.existsSync(inputDir)) fs.mkdirSync(inputDir, { recursive: true });
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
-  router.delete('/delete-input/:filename', (req, res) => {
+  router.delete('/delete-input/:filename', async (req, res) => {
     try {
       const fname = decodeURIComponent(req.params.filename);
       const filePath = path.join(inputDir, fname);
       const trashPath = path.join(inputTrashDir, fname);
-
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ error: 'File tidak ditemukan' });
-      }
-
-      const stat = fs.statSync(filePath);
-      const fileDate = new Date(stat.mtime).toISOString().split('T')[0];
-      const today = new Date().toISOString().split('T')[0];
-
-      // Move to trash
-      fs.renameSync(filePath, trashPath);
 
       // Record Before State for Audit Trail
       const beforeTxs = db.queryAll('SELECT * FROM transaksi WHERE sumber = ?', [fname]);
@@ -53,6 +45,19 @@ module.exports = function (db) {
 
       if (typeof db.insertAuditLog === 'function' && beforeTxs.length > 0) {
         db.insertAuditLog('DELETE', fname, 'Hapus Data ' + fname, 'SUCCESS', 'Dihapus ' + beforeTxs.length + ' transaksi', beforeState, null);
+      }
+      
+      // Sync DB state to Supabase
+      if (typeof db.saveDbAsync === 'function') {
+        await db.saveDbAsync();
+      }
+
+      // Delete from Supabase Storage
+      await supabase.storage.from('pdam-storage').remove([`excel/${fname}`]);
+
+      // Move local file to trash if exists
+      if (fs.existsSync(filePath)) {
+        fs.renameSync(filePath, trashPath);
       }
 
       res.json({ message: 'File dihapus dan transaksi terkait dibatalkan dari sistem.', deletedFromDb: true });
@@ -78,7 +83,7 @@ module.exports = function (db) {
     }
   });
 
-  router.post('/restore-trash/:filename', (req, res) => {
+  router.post('/restore-trash/:filename', async (req, res) => {
     try {
       const fname = decodeURIComponent(req.params.filename);
       const trashPath = path.join(inputTrashDir, fname);
@@ -93,22 +98,29 @@ module.exports = function (db) {
       }
 
       fs.renameSync(trashPath, inputPath);
+      
+      // Also restore to Supabase
+      const buffer = fs.readFileSync(inputPath);
+      await supabase.storage.from('pdam-storage').upload(`excel/${fname}`, buffer, { upsert: true });
+
       res.json({ message: 'File berhasil dipulihkan ke folder input' });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  router.get('/input-files', (req, res) => {
+  router.get('/input-files', async (req, res) => {
     try {
-      if (!fs.existsSync(inputDir)) return res.json([]);
-      const files = fs.readdirSync(inputDir).filter(f => /\.xlsx?$/i.test(f)).map(f => {
-        const stat = fs.statSync(path.join(inputDir, f));
+      // List from Supabase directly so it's accurate across serverless instances
+      const { data, error } = await supabase.storage.from('pdam-storage').list('excel');
+      if (error) throw error;
+      
+      const files = (data || []).filter(f => f.name !== '.emptyFolderPlaceholder' && /\.xlsx?$/i.test(f.name)).map(f => {
         return {
-          filename: f,
-          size: stat.size,
-          modified: stat.mtime,
-          downloadUrl: `/api/process/download-input/${encodeURIComponent(f)}`
+          filename: f.name,
+          size: f.metadata ? f.metadata.size : 0,
+          modified: f.created_at,
+          downloadUrl: `/api/process/download-input/${encodeURIComponent(f.name)}`
         };
       });
       res.json(files);
@@ -117,15 +129,19 @@ module.exports = function (db) {
     }
   });
 
-  router.get('/download-input/:filename', (req, res) => {
+  router.get('/download-input/:filename', async (req, res) => {
     try {
       const fname = decodeURIComponent(req.params.filename);
-      const filePath = path.join(inputDir, fname);
-      if (fs.existsSync(filePath)) {
-        res.download(filePath);
-      } else {
-        res.status(404).send('File tidak ditemukan');
+      const { data, error } = await supabase.storage.from('pdam-storage').download(`excel/${fname}`);
+      
+      if (error) {
+        return res.status(404).send('File tidak ditemukan di Supabase');
       }
+      
+      const buffer = Buffer.from(await data.arrayBuffer());
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
+      res.send(buffer);
     } catch (err) {
       res.status(500).send('Error downloading file: ' + err.message);
     }
@@ -304,30 +320,57 @@ module.exports = function (db) {
     }
   });
 
-  router.post('/upload-input', (req, res) => {
+  router.post('/upload-input', async (req, res) => {
     try {
       const { filename, contentBase64 } = req.body;
       if (!filename || !contentBase64) {
         return res.status(400).json({ error: 'Nama file dan konten base64 wajib diisi' });
       }
 
+      const cleanBase64 = contentBase64.replace(/^data:.*;base64,/, '');
+      const buffer = Buffer.from(cleanBase64, 'base64');
+      
+      // Upload to Supabase Storage
+      const { error } = await supabase.storage
+        .from('pdam-storage')
+        .upload(`excel/${filename}`, buffer, { upsert: true });
+
+      if (error) throw error;
+
+      // Also save locally for immediate processing if needed
       if (!fs.existsSync(inputDir)) {
         fs.mkdirSync(inputDir, { recursive: true });
       }
-
-      const cleanBase64 = contentBase64.replace(/^data:.*;base64,/, '');
-      const buffer = Buffer.from(cleanBase64, 'base64');
       const filePath = path.join(inputDir, filename);
-
       fs.writeFileSync(filePath, buffer);
-      res.json({ message: 'File berhasil diunggah ke folder input', filename, size: buffer.length });
+
+      res.json({ message: 'File berhasil diunggah ke Supabase', filename, size: buffer.length });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
+  // Helper function to download all excel files from Supabase to local /tmp before processing
+  async function syncExcelFilesFromSupabase() {
+    const { data, error } = await supabase.storage.from('pdam-storage').list('excel');
+    if (error) return;
+    
+    if (!fs.existsSync(inputDir)) fs.mkdirSync(inputDir, { recursive: true });
+    
+    for (const f of data || []) {
+      if (f.name === '.emptyFolderPlaceholder' || !/\.xlsx?$/i.test(f.name)) continue;
+      const { data: fileData, error: dlError } = await supabase.storage.from('pdam-storage').download(`excel/${f.name}`);
+      if (fileData && !dlError) {
+        const buffer = Buffer.from(await fileData.arrayBuffer());
+        fs.writeFileSync(path.join(inputDir, f.name), buffer);
+      }
+    }
+  }
+
   router.post('/input', async (req, res) => {
     try {
+      await syncExcelFilesFromSupabase();
+      
       const result1 = processInputFiles(db, inputDir);
       const result2 = bulkImport(db, inputDir);
 
@@ -336,6 +379,10 @@ module.exports = function (db) {
         transactions: [...result1.transactions, ...result2.transactions],
         errors: [...result1.errors, ...result2.errors]
       };
+
+      if (typeof db.saveDbAsync === 'function') {
+        await db.saveDbAsync();
+      }
 
       res.json(combined);
     } catch (err) {
@@ -364,7 +411,13 @@ module.exports = function (db) {
 
   router.post('/bulk-import', async (req, res) => {
     try {
+      await syncExcelFilesFromSupabase();
       const result = bulkImport(db, inputDir);
+      
+      if (typeof db.saveDbAsync === 'function') {
+        await db.saveDbAsync();
+      }
+
       res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -373,9 +426,15 @@ module.exports = function (db) {
 
   router.post('/run-all', async (req, res) => {
     try {
+      await syncExcelFilesFromSupabase();
+      
       const bulkResult = bulkImport(db, inputDir);
       const processResult = processInputFiles(db, inputDir);
       const reportResults = generateAllReports(db, outputDir);
+
+      if (typeof db.saveDbAsync === 'function') {
+        await db.saveDbAsync();
+      }
 
       res.json({
         bulk: bulkResult,
@@ -388,7 +447,7 @@ module.exports = function (db) {
   });
 
   // Preview Excel file content (all sheets, first N rows)
-  router.get('/preview/:source/:filename', (req, res) => {
+  router.get('/preview/:source/:filename', async (req, res) => {
     try {
       const XLSX = require('xlsx-js-style');
       const fname = decodeURIComponent(req.params.filename);
@@ -398,6 +457,15 @@ module.exports = function (db) {
       let filePath;
       if (source === 'input') {
         filePath = path.join(inputDir, fname);
+        // Ensure file exists locally if trying to preview input
+        if (!fs.existsSync(filePath)) {
+           const { data, error } = await supabase.storage.from('pdam-storage').download(`excel/${fname}`);
+           if (data && !error) {
+             const buffer = Buffer.from(await data.arrayBuffer());
+             if (!fs.existsSync(inputDir)) fs.mkdirSync(inputDir, { recursive: true });
+             fs.writeFileSync(filePath, buffer);
+           }
+        }
       } else {
         filePath = path.join(outputDir, fname);
         if (!fs.existsSync(filePath)) {
@@ -451,24 +519,27 @@ module.exports = function (db) {
   });
 
   // Upload multiple files
-  router.post('/upload-multiple', (req, res) => {
+  router.post('/upload-multiple', async (req, res) => {
     try {
       const { files } = req.body; // Array of { filename, contentBase64 }
       if (!Array.isArray(files) || files.length === 0) {
         return res.status(400).json({ error: 'Tidak ada file yang dikirim' });
       }
 
-      if (!fs.existsSync(inputDir)) {
-        fs.mkdirSync(inputDir, { recursive: true });
-      }
-
       const results = [];
       for (const file of files) {
         const cleanBase64 = file.contentBase64.replace(/^data:.*;base64,/, '');
         const buffer = Buffer.from(cleanBase64, 'base64');
-        const filePath = path.join(inputDir, file.filename);
-        fs.writeFileSync(filePath, buffer);
-        results.push({ filename: file.filename, size: buffer.length, status: 'OK' });
+        
+        const { error } = await supabase.storage
+          .from('pdam-storage')
+          .upload(`excel/${file.filename}`, buffer, { upsert: true });
+          
+        if (error) {
+          results.push({ filename: file.filename, size: buffer.length, status: 'ERROR', message: error.message });
+        } else {
+          results.push({ filename: file.filename, size: buffer.length, status: 'OK' });
+        }
       }
 
       res.json({ message: `${results.length} file berhasil diunggah`, files: results });
