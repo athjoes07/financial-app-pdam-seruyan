@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react'
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 export default function ProcessPage() {
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const progressIntervalRef = React.useRef(null);
   const [inputFiles, setInputFiles] = useState([])
   const [outputFiles, setOutputFiles] = useState([])
   const [result, setResult] = useState(null)
@@ -23,8 +25,12 @@ export default function ProcessPage() {
   const fileInputRef = useRef(null)
 
   useEffect(() => {
-    fetchFileList()
-  }, [])
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current)
+      }
+    }
+  }, []);
 
   async function fetchFileList() {
     try {
@@ -80,11 +86,21 @@ export default function ProcessPage() {
   }
 
   async function handleProcess() {
+    // Initialize progress
+    setProgress(0)
     setLoading(true)
     setError('')
     setResult(null)
+    // Simulate incremental progress while the backend processes
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+    progressIntervalRef.current = setInterval(() => {
+      setProgress(prev => {
+        const next = Math.min(prev + 10, 90) // cap at 90% until request finishes
+        return next
+      })
+    }, 1000)
     try {
-      const res = await fetch(`${API_URL}/api/process/run-all`, { 
+      const res = await fetch(`${API_URL}/api/process/run-all`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ exportDate })
@@ -95,7 +111,13 @@ export default function ProcessPage() {
     } catch (err) {
       setError(err.message)
     }
+    // Ensure progress reaches 100% on completion
+    setProgress(100)
     setLoading(false)
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current)
+      progressIntervalRef.current = null
+    }
   }
 
   async function handleDeleteInput(filename) {
@@ -220,9 +242,14 @@ export default function ProcessPage() {
               <button
                 className="btn btn-primary"
                 onClick={handleProcess}
-                disabled={loading}
+                disabled={loading || inputFiles.length === 0}
               >
-                {loading ? '⚡ Memproses...' : '🚀 Proses Sekarang'}
+                {loading && (
+                <div style={{ marginTop: '0.5rem', width: '100%' }}>
+                  <progress value={progress} max="100" style={{ width: '100%' }} />
+                  <div style={{ textAlign: 'center', fontSize: '0.85rem', marginTop: '0.25rem' }}>{progress}%</div>
+                </div>
+              )}
               </button>
             </div>
           </div>
