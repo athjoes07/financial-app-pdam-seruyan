@@ -33,10 +33,21 @@ function queryOne(sql, params = []) {
   return rows.length > 0 ? rows[0] : null;
 }
 
+let syncTimeout = null;
+function triggerSync() {
+  if (!db || typeof db.saveDbAsync !== 'function') return;
+  if (syncTimeout) clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(() => {
+    db.saveDbAsync().catch(err => console.error('Auto-sync error:', err));
+  }, 2000); // Debounce 2 seconds
+}
+
 function run(sql, params = []) {
   db.run(sql, params);
   // We STILL save locally synchronously so subsequent operations in the same request can see it
   saveDb();
+  // Trigger an automatic async upload to Supabase
+  triggerSync();
 }
 
 async function initDatabase() {
