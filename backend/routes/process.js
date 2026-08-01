@@ -218,12 +218,8 @@ module.exports = function (db) {
 
   router.get('/output-files', async (req, res) => {
     try {
-      // Show generated reports if they exist; otherwise fall back to static reference folder
-      let targetDir = fs.existsSync(outputDir) ? outputDir : null;
-      if (targetDir && fs.readdirSync(targetDir).filter(f => /\.xlsx?$/i.test(f)).length === 0) {
-        // No generated files – try static reference folder
-        targetDir = fs.existsSync(sampleOutputDir) ? sampleOutputDir : null;
-      }
+      // Show only generated reports – if none exist, return empty list
+      const targetDir = fs.existsSync(outputDir) ? outputDir : null;
       if (!targetDir) return res.json([]);
       const files = fs.readdirSync(targetDir)
         .filter(f => /\.xlsx?$/i.test(f))
