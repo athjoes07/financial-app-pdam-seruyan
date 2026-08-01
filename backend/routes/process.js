@@ -35,8 +35,13 @@ module.exports = function (db) {
       }
 
       // Delete transactions AND related jurnal from database
-      // First enable FK support (SQLite needs this explicitly)
-      await db.queryRun('PRAGMA foreign_keys = ON');
+      // For Postgres, FK cascade is on by default, but we can also explicitly delete.
+      try {
+        await db.queryRun('PRAGMA foreign_keys = ON');
+      } catch (e) {
+        // Ignore error if not SQLite (e.g. Postgres where it's a syntax error)
+      }
+      
       // Delete orphan jurnal entries tied to this file's transactions
       await db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ?)', [fname]);
       await db.queryRun('DELETE FROM transaksi WHERE sumber = ?', [fname]);
