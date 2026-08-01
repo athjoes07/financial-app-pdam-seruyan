@@ -141,6 +141,27 @@ async function generateAllReports(db, outputDir, exportDate = null) {
     results.push({ file: atFile, status: 'OK' });
   } catch (e) { results.push({ file: atFile, status: 'ERROR', error: e.message }); }
 
+  // Rename generated files to all‑uppercase, year‑less names for the final output set
+  const renameMap = {
+    'JOURNAL.xlsx': 'JOURNAL.xlsx',
+    'BUKU BESAR.xlsx': 'BUKU BESAR.xlsx',
+    'NERACA LAJUR.xlsx': 'NERACA LAJUR.xlsx',
+    'NERACA, RL, ARUS KAS.xlsx': 'NERACA, RL, ARUS KAS, EKUITAS & RINCIAN.xlsx',
+    'AUDIT_TRAIL.xlsx': 'AUDIT_TRAIL.xlsx',
+  };
+  for (const [source, target] of Object.entries(renameMap)) {
+    const sourcePath = path.join(outputDir, source);
+    const targetPath = path.join(outputDir, target);
+    if (source !== target && fs.existsSync(sourcePath)) {
+      try {
+        fs.renameSync(sourcePath, targetPath);
+        // Also update the results entry so the API reflects the final name
+        const r = results.find(r => r.file === source);
+        if (r) r.file = target;
+      } catch (e) {}
+    }
+  }
+
   return results;
 }
 
