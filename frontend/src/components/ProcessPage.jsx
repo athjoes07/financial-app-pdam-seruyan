@@ -332,7 +332,7 @@ export default function ProcessPage() {
                       <th>Nama File</th>
                       <th>Tgl Upload</th>
                       <th className="text-right">Ukuran</th>
-                      <th className="text-center" style={{ width: '150px' }}>Aksi</th>
+                      <th className="text-center" style={{ width: '80px' }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -342,23 +342,6 @@ export default function ProcessPage() {
                         <td style={{ fontSize: '0.8rem' }}>{new Date(f.modified).toLocaleDateString('id-ID')}</td>
                         <td className="text-right font-mono" style={{ fontSize: '0.8rem' }}>{(f.size / 1024).toFixed(1)} KB</td>
                         <td className="text-center" style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
-                          <button 
-                            onClick={() => handlePreview(f.filename, 'input')}
-                            className="btn btn-secondary btn-sm"
-                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                            title="Preview"
-                          >
-                            👁️
-                          </button>
-                          <a 
-                            href={f.downloadUrl || `${API_URL}/api/process/download-input/${encodeURIComponent(f.filename)}`} 
-                            download 
-                            className="btn btn-secondary btn-sm"
-                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', textDecoration: 'none' }}
-                            title="Unduh File"
-                          >
-                            ⬇️
-                          </a>
                           <button 
                             onClick={() => handleDeleteInput(f.filename)}
                             className="btn btn-danger btn-sm"
@@ -391,22 +374,6 @@ export default function ProcessPage() {
                       </span>
                     </div>
                     <div className="process-file-actions">
-                      <button 
-                        onClick={() => handlePreview(f.filename, 'input')}
-                        className="process-file-action-btn"
-                        title="Preview"
-                        style={{ background: 'var(--info-bg)', color: 'var(--info)' }}
-                      >
-                        👁️
-                      </button>
-                      <a 
-                        href={f.downloadUrl || `${API_URL}/api/process/download-input/${encodeURIComponent(f.filename)}`} 
-                        download 
-                        className="process-file-action-btn download"
-                        title="Unduh"
-                      >
-                        ⬇️
-                      </a>
                       <button 
                         onClick={() => handleDeleteInput(f.filename)}
                         className="process-file-action-btn delete"
