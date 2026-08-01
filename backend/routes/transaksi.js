@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 
 module.exports = function(db) {
-  router.get('/', (req, res) => {
-    const transaksi = db.queryAll(`
+  router.get('/', async (req, res) => {
+    const transaksi = await db.queryAll(`
       SELECT t.*, GROUP_CONCAT(
         '{"akun_id":' || j.akun_id || ',"akun_nama":"' || a.nama || '","debit":' || j.debit || ',"kredit":' || j.kredit || '}'
       ) as jurnal
@@ -22,7 +22,7 @@ module.exports = function(db) {
     res.json(result);
   });
 
-  router.post('/', (req, res) => {
+  router.post('/', async (req, res) => {
     const { tanggal, deskripsi, entries } = req.body;
 
     if (!deskripsi || !entries || entries.length < 2) {
@@ -37,18 +37,18 @@ module.exports = function(db) {
     }
 
     const tgl = tanggal || new Date().toISOString().slice(0, 10);
-    db.run('INSERT INTO transaksi (tanggal, deskripsi) VALUES (?, ?)', [tgl, deskripsi]);
+    await db.queryRun('INSERT INTO transaksi (tanggal, deskripsi) VALUES (?, ?)', [tgl, deskripsi]);
 
-    const result = db.queryOne('SELECT MAX(id) as id FROM transaksi');
+    const result = await db.queryOne('SELECT MAX(id) as id FROM transaksi');
     const tId = result.id;
 
     for (const e of entries) {
-      db.run('INSERT INTO jurnal (transaksi_id, akun_id, debit, kredit) VALUES (?, ?, ?, ?)', [
+      await db.queryRun('INSERT INTO jurnal (transaksi_id, akun_id, debit, kredit) VALUES (?, ?, ?, ?)', [
         tId, e.akun_id, parseFloat(e.debit) || 0, parseFloat(e.kredit) || 0
       ]);
     }
 
-    const transaksi = db.queryOne(`
+    const transaksi = await db.queryOne(`
       SELECT t.*, GROUP_CONCAT(
         '{"akun_id":' || j.akun_id || ',"akun_nama":"' || a.nama || '","debit":' || j.debit || ',"kredit":' || j.kredit || '}'
       ) as jurnal
@@ -63,9 +63,9 @@ module.exports = function(db) {
     res.status(201).json(transaksi);
   });
 
-  router.delete('/:id', (req, res) => {
-    db.run('DELETE FROM jurnal WHERE transaksi_id = ?', [req.params.id]);
-    db.run('DELETE FROM transaksi WHERE id = ?', [req.params.id]);
+  router.delete('/:id', async (req, res) => {
+    await db.queryRun('DELETE FROM jurnal WHERE transaksi_id = ?', [req.params.id]);
+    await db.queryRun('DELETE FROM transaksi WHERE id = ?', [req.params.id]);
     res.json({ message: 'Transaksi dihapus' });
   });
 

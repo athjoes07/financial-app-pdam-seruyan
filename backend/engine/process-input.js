@@ -5,7 +5,7 @@ const XLSX = require('xlsx-js-style');
 const drdParser = require('../input-processors/drd-parser');
 const lppParser = require('../input-processors/lpp-parser');
 
-function processInputFiles(db, inputDir) {
+async function processInputFiles(db, inputDir) {
   const results = { files_processed: [], transactions: [], errors: [] };
 
   if (!fs.existsSync(inputDir)) {
@@ -21,6 +21,13 @@ function processInputFiles(db, inputDir) {
     const filePath = path.join(inputDir, file);
 
     try {
+      // DUPLICATE CHECK: Tolak file duplikat otomatis
+      const existing = await db.queryOne('SELECT id FROM transaksi WHERE sumber = ? LIMIT 1', [file]);
+      if (existing) {
+        results.errors.push(`File ${file} sudah pernah diproses. Ditolak untuk mencegah data ganda.`);
+        continue;
+      }
+
       if (file.toLowerCase().includes('rekap drd') || file.toLowerCase().includes('drd')) {
         const parsed = drdParser.parse(filePath);
         results.files_processed.push(parsed.source + ': ' + file);
@@ -36,7 +43,7 @@ function processInputFiles(db, inputDir) {
 
           if (totalHA > 0 || totalAdm > 0) {
             const desc = `Rekening Air ${parsed.bulan} ${currentYear}`;
-            const txId = createTx(db, tgl, desc, [
+            const txId = await createTx(db, tgl, desc, [
               { kode: '13.01.00', debit: totalHA + totalAdm, kredit: 0 },
               { kode: '81.01.10', debit: 0, kredit: totalHA },
               { kode: '81.01.20', debit: 0, kredit: totalAdm },
@@ -46,7 +53,7 @@ function processInputFiles(db, inputDir) {
 
           if (totalDM > 0) {
             const desc = `Dana Meter ${parsed.bulan} ${currentYear}`;
-            const txId = createTx(db, tgl, desc, [
+            const txId = await createTx(db, tgl, desc, [
               { kode: '13.01.40', debit: totalDM, kredit: 0 },
               { kode: '81.01.20', debit: 0, kredit: totalDM },
             ], file);
@@ -84,7 +91,7 @@ function processInputFiles(db, inputDir) {
           if (totalDM > 0) entries.push({ kode: '13.01.40', debit: 0, kredit: totalDM });
           if (totalDenda > 0) entries.push({ kode: '81.02.50', debit: 0, kredit: totalDenda });
 
-          const txId = createTx(db, tgl, desc, entries, file);
+          const txId = await createTx(db, tgl, desc, entries, file);
           results.transactions.push({ id: txId, desc, total: actualTotalKas });
         }
       }
@@ -96,19 +103,19 @@ function processInputFiles(db, inputDir) {
   return results;
 }
 
-function createTx(db, tanggal, deskripsi, entries, sumber = '') {
+async function createTx(db, tanggal, deskripsi, entries, sumber = '') {
   if (!entries || entries.length === 0) return null;
-  db.queryRun('INSERT INTO transaksi (tanggal, deskripsi, sumber) VALUES (?, ?, ?)', [tanggal, deskripsi, sumber]);
-  const result = db.queryOne('SELECT MAX(id) as id FROM transaksi');
+  await db.queryRun('INSERT INTO transaksi (tanggal, deskripsi, sumber) VALUES (?, ?, ?)', [tanggal, deskripsi, sumber]);
+  const result = await db.queryOne('SELECT MAX(id) as id FROM transaksi');
   const tId = result.id;
 
   let totalDebit = 0;
   let totalKredit = 0;
 
   for (const e of entries) {
-    const akun = db.queryOne('SELECT id FROM akun WHERE kode = ?', [e.kode]);
+    const akun = await db.queryOne('SELECT id FROM akun WHERE kode = ?', [e.kode]);
     if (akun) {
-      db.queryRun('INSERT INTO jurnal (transaksi_id, akun_id, debit, kredit) VALUES (?, ?, ?, ?)', [
+      await db.queryRun('INSERT INTO jurnal (transaksi_id, akun_id, debit, kredit) VALUES (?, ?, ?, ?)', [
         tId, akun.id, e.debit, e.kredit
       ]);
       totalDebit += e.debit || 0;
@@ -123,8 +130,8 @@ function createTx(db, tanggal, deskripsi, entries, sumber = '') {
     jurnal: entries
   };
 
-  if (typeof db.insertAuditLog === 'function') {
-    db.insertAuditLog('TRANSAKSI', sumber || 'Sistem', deskripsi, status, detail, null, afterState);
+  if (typeof await db.insertAuditLog === 'function') {
+    await db.insertAuditLog('TRANSAKSI', sumber || 'Sistem', deskripsi, status, detail, null, afterState);
   }
 
   return tId;

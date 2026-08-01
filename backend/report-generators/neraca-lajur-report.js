@@ -10,26 +10,26 @@ const MONTHS = [
 
 const LAST_DAY = { JANUARI: '31', FEBRUARI: '28', MARET: '31', APRIL: '30', MEI: '31' };
 
-function generateNeracaLajur(db, outputPath) {
+async function generateNeracaLajur(db, outputPath, exportDate = null) {
   const wb = XLSX.utils.book_new();
 
-  const akunList = db.queryAll('SELECT * FROM akun ORDER BY kode');
+  const akunList = await db.queryAll('SELECT * FROM akun ORDER BY kode');
 
-  function getMonthlyData(monthIndex) {
+  async function getMonthlyData(monthIndex) {
     const endDate = '2026-' + String(monthIndex + 1).padStart(2, '0') + '-' + LAST_DAY[MONTHS[monthIndex].name];
     
     const data = [];
     data.push(['NERACA LAJUR', '', '', '', '', '', '', '', '', '', '', '']);
     data.push(['PERUSAHAAN UMUM DAERAH AIR MINUM TIRTA SERUYAN', '', '', '', '', '', '', '', '', '', '', '']);
-    data.push(['UNTUK TAHUN YANG BERAKHIR ' + LAST_DAY[MONTHS[monthIndex].name] + ' ' + MONTHS[monthIndex].name + ' 2026', '', '', '', '', '', '', '', '', '', '', '']);
+    data.push(['UNTUK TAHUN YANG BERAKHIR ' + LAST_DAY[MONTHS[monthIndex].name] + ' ' + MONTHS[monthIndex].name + ' ' + tahunCetak, '', '', '', '', '', '', '', '', '', '', '']);
     data.push(['', '', '', '', '', '', '', '', '', '', '', '']);
     data.push(['URAIAN', '', 'NERACA SALDO AWAL', '', 'MUTASI', '', 'NERACA SALDO', '', 'RUGI/ LABA', '', 'NERACA AKHIR', '']);
     data.push(['', '', 'D', 'K', 'D', 'K', 'D', 'K', 'D', 'K', 'D', 'K']);
-    data.push(['', '', 'PER 01 JANUARI 2025', '', '', '', 'PER ' + LAST_DAY[MONTHS[monthIndex].name] + ' ' + MONTHS[monthIndex].name + ' 2026', '', 'PER ' + LAST_DAY[MONTHS[monthIndex].name] + ' ' + MONTHS[monthIndex].name + ' 2026', '', 'PER ' + LAST_DAY[MONTHS[monthIndex].name] + ' ' + MONTHS[monthIndex].name + ' 2026', '']);
+    data.push(['', '', 'PER 01 JANUARI 2025', '', '', '', 'PER ' + LAST_DAY[MONTHS[monthIndex].name] + ' ' + MONTHS[monthIndex].name + ' ' + tahunCetak, '', 'PER ' + LAST_DAY[MONTHS[monthIndex].name] + ' ' + MONTHS[monthIndex].name + ' ' + tahunCetak, '', 'PER ' + LAST_DAY[MONTHS[monthIndex].name] + ' ' + MONTHS[monthIndex].name + ' ' + tahunCetak, '']);
 
     for (const a of akunList) {
       const saldoAwal = 0;
-      const entries = db.queryAll(`
+      const entries = await db.queryAll(`
         SELECT COALESCE(SUM(j.debit), 0) as total_debit, COALESCE(SUM(j.kredit), 0) as total_kredit
         FROM jurnal j
         JOIN transaksi t ON t.id = j.transaksi_id
@@ -75,7 +75,7 @@ function generateNeracaLajur(db, outputPath) {
   }
 
   for (let i = 0; i < MONTHS.length; i++) {
-    const monthData = getMonthlyData(i);
+    const monthData = await getMonthlyData(i);
     const sheet = XLSX.utils.aoa_to_sheet(monthData);
     sheet['!cols'] = [{ wch: 35 }, { wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
     XLSX.utils.book_append_sheet(wb, sheet, 'NERCA LAJUR ' + MONTHS[i].name);

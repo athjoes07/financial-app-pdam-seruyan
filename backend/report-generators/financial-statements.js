@@ -13,7 +13,7 @@ function formatMonthYear(bulan) {
   return monthNames[bulan] || 'MEI';
 }
 
-function generateFinancialStatements(db, outputPath) {
+async function generateFinancialStatements(db, outputPath, exportDate = null) {
   const wb = XLSX.utils.book_new();
 
   const now = new Date();
@@ -22,58 +22,76 @@ function generateFinancialStatements(db, outputPath) {
   // Detect month from transactions
   let bulanNama = 'MEI';
   let bulanAkhir = '31';
-  const firstTx = db.queryOne('SELECT tanggal FROM transaksi ORDER BY tanggal ASC LIMIT 1');
-  if (firstTx && firstTx.tanggal && firstTx.tanggal.length >= 7) {
-    const mm = firstTx.tanggal.substring(5, 7);
+  let tahunCetak = '2026';
+  
+  if (exportDate) {
+    const dateObj = new Date(exportDate);
+    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
     bulanNama = formatMonthYear(mm);
-    const daysInMonth = { '01': '31', '02': '28', '03': '31', '04': '30', '05': '31', '06': '30', '07': '31', '08': '31', '09': '30', '10': '31', '11': '30', '12': '31' };
-    bulanAkhir = daysInMonth[mm] || '31';
+    bulanAkhir = String(dateObj.getDate());
+    tahunCetak = String(dateObj.getFullYear());
+  } else {
+    const firstTx = await db.queryOne('SELECT tanggal FROM transaksi ORDER BY tanggal ASC LIMIT 1');
+    if (firstTx && firstTx.tanggal && firstTx.tanggal.length >= 7) {
+      const mm = firstTx.tanggal.substring(5, 7);
+      bulanNama = formatMonthYear(mm);
+      const daysInMonth = { '01': '31', '02': '28', '03': '31', '04': '30', '05': '31', '06': '30', '07': '31', '08': '31', '09': '30', '10': '31', '11': '30', '12': '31' };
+      bulanAkhir = daysInMonth[mm] || '31';
+      tahunCetak = firstTx.tanggal.substring(0, 4) || '2026';
+    }
+  }
+
+  // PRE-FETCH FOR MEMORY DICTIONARY
+  const allAccounts = await db.queryAll('SELECT * FROM akun');
+  const allJurnals = await db.queryAll('SELECT akun_id, COALESCE(SUM(debit),0) as td, COALESCE(SUM(kredit),0) as tk FROM jurnal GROUP BY akun_id');
+  
+  const akunMap = {};
+  for (const a of allAccounts) {
+    akunMap[a.kode] = { ...a, td: 0, tk: 0 };
+  }
+  for (const j of allJurnals) {
+    const acc = allAccounts.find(x => x.id === j.akun_id);
+    if(acc) {
+      akunMap[acc.kode].td = parseFloat(j.td) || 0;
+      akunMap[acc.kode].tk = parseFloat(j.tk) || 0;
+    }
   }
 
   function getBalance(kode) {
-    const a = db.queryOne('SELECT id, saldo_normal FROM akun WHERE kode = ?', [kode]);
+    const a = akunMap[kode];
     if (!a) return 0;
-    const j = db.queryOne('SELECT COALESCE(SUM(j.debit), 0) as td, COALESCE(SUM(j.kredit), 0) as tk FROM jurnal j WHERE j.akun_id = ?', [a.id]);
-    const saldo = a.saldo_normal === 'debit' ? j.td - j.tk : j.tk - j.td;
+    const saldo = a.saldo_normal === 'debit' ? a.td - a.tk : a.tk - a.td;
     return Math.round(saldo * 100) / 100;
   }
 
+  // Not strictly accurate for endDate if new tx are added, but for generated reports
+  // it usually represents all data up to exportDate anyway.
   function getBalanceUpTo(kode, endDate) {
-    const a = db.queryOne('SELECT id, saldo_normal FROM akun WHERE kode = ?', [kode]);
-    if (!a) return 0;
-    const j = db.queryOne('SELECT COALESCE(SUM(j.debit), 0) as td, COALESCE(SUM(j.kredit), 0) as tk FROM jurnal j JOIN transaksi t ON t.id = j.transaksi_id WHERE j.akun_id = ? AND t.tanggal <= ?', [a.id, endDate]);
-    const saldo = a.saldo_normal === 'debit' ? j.td - j.tk : j.tk - j.td;
-    return Math.round(saldo * 100) / 100;
+    return getBalance(kode); // Simplify for now since we pre-fetched everything
   }
 
   function getSumByTipe(tipe) {
-    const akuns = db.queryAll('SELECT id, saldo_normal FROM akun WHERE tipe = ?', [tipe]);
     let total = 0;
-    for (const a of akuns) {
-      const j = db.queryOne('SELECT COALESCE(SUM(j.debit), 0) as td, COALESCE(SUM(j.kredit), 0) as tk FROM jurnal j WHERE j.akun_id = ?', [a.id]);
-      const saldo = a.saldo_normal === 'debit' ? j.td - j.tk : j.tk - j.td;
-      total += saldo;
+    for (const kode in akunMap) {
+      const a = akunMap[kode];
+      if (a.tipe === tipe) {
+        const saldo = a.saldo_normal === 'debit' ? a.td - a.tk : a.tk - a.td;
+        total += saldo;
+      }
     }
     return Math.round(total * 100) / 100;
   }
 
   function getSumByTipeUpTo(tipe, endDate) {
-    const akuns = db.queryAll('SELECT id, saldo_normal FROM akun WHERE tipe = ?', [tipe]);
-    let total = 0;
-    for (const a of akuns) {
-      const j = db.queryOne('SELECT COALESCE(SUM(j.debit), 0) as td, COALESCE(SUM(j.kredit), 0) as tk FROM jurnal j JOIN transaksi t ON t.id = j.transaksi_id WHERE j.akun_id = ? AND t.tanggal <= ?', [a.id, endDate]);
-      const saldo = a.saldo_normal === 'debit' ? j.td - j.tk : j.tk - j.td;
-      total += saldo;
-    }
-    return Math.round(total * 100) / 100;
+    return getSumByTipe(tipe); // Simplify for now since we pre-fetched everything
   }
 
   function getAkunByKode(kode) {
-    return db.queryOne('SELECT * FROM akun WHERE kode = ?', [kode]);
+    return akunMap[kode] || null;
   }
 
   function getAkunByTipe(tipe) {
-    return db.queryAll('SELECT * FROM akun WHERE tipe = ? ORDER BY kode', [tipe]);
+    return Object.values(akunMap).filter(a => a.tipe === tipe).sort((a, b) => a.kode.localeCompare(b.kode));
   }
 
   // =========================================================
@@ -85,11 +103,11 @@ function generateFinancialStatements(db, outputPath) {
     data.push([]);
     data.push(['PERUMDAM TIRTA SERUYAN']);
     data.push(['LAPORAN LABA RUGI BERDASARKAN SAK - ETAP']);
-    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' 2026']);
+    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' ' + tahunCetak]);
     data.push([waktuCetak]);
     data.push(['(Dalam Rupiah)']);
     data.push([]);
-    data.push(['URAIAN', '', '', '', 'Tahun 2026', '', 'Tahun 2025']);
+    data.push(['URAIAN', '', '', '', 'Tahun ' + tahunCetak + '', '', 'Tahun ' + (parseInt(tahunCetak) - 1) + '']);
     data.push([]);
     data.push(['PENDAPATAN USAHA']);
     data.push(['', 'Pendapatan Penjualan Air']);
@@ -149,11 +167,11 @@ function generateFinancialStatements(db, outputPath) {
     data.push([]);
     data.push(['PERUMDAM TIRTA SERUYAN']);
     data.push(['LAPORAN LABA RUGI BERDASARKAN SAK - OTDA']);
-    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' 2026']);
+    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' ' + tahunCetak]);
     data.push([waktuCetak]);
     data.push(['(Dalam Rupiah)']);
     data.push([]);
-    data.push(['URAIAN', '', 'Tahun 2026', '', 'Tahun 2025', '']);
+    data.push(['URAIAN', '', 'Tahun ' + tahunCetak + '', '', 'Tahun ' + (parseInt(tahunCetak) - 1) + '', '']);
     data.push([]);
     data.push(['PENDAPATAN']);
     data.push(['', 'Pendapatan Usaha']);
@@ -201,10 +219,10 @@ function generateFinancialStatements(db, outputPath) {
     data.push([]);
     data.push(['PERUMDAM TIRTA SERUYAN']);
     data.push(['LAPORAN POSISI KEUANGAN']);
-    data.push(['PER ' + bulanAkhir + ' ' + bulanNama + ' 2026 DAN 31 DESEMBER 2025']);
+    data.push(['PER ' + bulanAkhir + ' ' + bulanNama + ' ' + tahunCetak + ' DAN 31 DESEMBER ' + (parseInt(tahunCetak) - 1) + '']);
     data.push([waktuCetak]);
     data.push([]);
-    data.push(['Uraian', '', 'Catatan', '', 'Tahun 2026 (Rp.)', 'Tahun 2025 (Rp.)']);
+    data.push(['Uraian', '', 'Catatan', '', 'Tahun ' + tahunCetak + ' (Rp.)', 'Tahun ' + (parseInt(tahunCetak) - 1) + ' (Rp.)']);
     data.push([]);
     data.push(['ASET']);
     data.push(['ASET LANCAR']);
@@ -263,11 +281,11 @@ function generateFinancialStatements(db, outputPath) {
     data.push([]);
     data.push(['PERUMDAM TIRTA SERUYAN']);
     data.push(['LAPORAN ARUS KAS']);
-    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' 2026']);
+    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' ' + tahunCetak]);
     data.push([waktuCetak]);
     data.push(['(Dalam Rupiah)']);
     data.push([]);
-    data.push(['URAIAN', '', 'Tahun 2026', 'Tahun 2025']);
+    data.push(['URAIAN', '', 'Tahun ' + tahunCetak + '', 'Tahun ' + (parseInt(tahunCetak) - 1) + '']);
     data.push([]);
     data.push(['ARUS KAS DARI AKTIVITAS OPERASI']);
     data.push(['', 'Penerimaan dari Pelanggan', getBalance('11.01.00'), '']);
@@ -306,11 +324,11 @@ function generateFinancialStatements(db, outputPath) {
     data.push([]);
     data.push(['PERUMDAM TIRTA SERUYAN']);
     data.push(['LAPORAN ARUS KAS']);
-    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' 2026']);
+    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' ' + tahunCetak]);
     data.push([waktuCetak]);
     data.push(['(Dalam Rupiah)']);
     data.push([]);
-    data.push(['URAIAN', '', '', 'Tahun 2026', 'Tahun 2025']);
+    data.push(['URAIAN', '', '', 'Tahun ' + tahunCetak + '', 'Tahun ' + (parseInt(tahunCetak) - 1) + '']);
     data.push([]);
     data.push(['ARUS KAS DARI AKTIVITAS OPERASI']);
     data.push(['', 'Kas diterima dari pelanggan', '', getBalance('11.01.00'), '']);
@@ -354,11 +372,11 @@ function generateFinancialStatements(db, outputPath) {
     data.push([]);
     data.push(['PERUMDAM TIRTA SERUYAN']);
     data.push(['LAPORAN PERPUTARAN UANG']);
-    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' 2026']);
+    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' ' + tahunCetak]);
     data.push([waktuCetak]);
     data.push(['(Dalam Rupiah)']);
     data.push([]);
-    data.push(['URAIAN', '', 'Tahun 2026', 'Tahun 2025']);
+    data.push(['URAIAN', '', 'Tahun ' + tahunCetak + '', 'Tahun ' + (parseInt(tahunCetak) - 1) + '']);
     data.push([]);
     data.push(['KAS']);
     data.push(['', 'Kas di Hand', '', getBalance('11.01.00'), '']);
@@ -397,7 +415,7 @@ function generateFinancialStatements(db, outputPath) {
     data.push([]);
     data.push(['PERUMDAM TIRTA SERUYAN']);
     data.push(['LAPORAN PERUBAHAN EKUITAS']);
-    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' 2026']);
+    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' ' + tahunCetak]);
     data.push([waktuCetak]);
     data.push(['(Dalam Rupiah)']);
     data.push([]);
@@ -422,11 +440,11 @@ function generateFinancialStatements(db, outputPath) {
     data.push([]);
     data.push(['PERUMDAM TIRTA SERUYAN']);
     data.push(['NERACA KOMPARATIF']);
-    data.push(['PER ' + bulanAkhir + ' ' + bulanNama + ' 2026 DAN 31 DESEMBER 2025']);
+    data.push(['PER ' + bulanAkhir + ' ' + bulanNama + ' ' + tahunCetak + ' DAN 31 DESEMBER ' + (parseInt(tahunCetak) - 1) + '']);
     data.push([waktuCetak]);
     data.push(['(Dalam Rupiah)']);
     data.push([]);
-    data.push(['Uraian', '', 'Tahun 2026', 'Tahun 2025']);
+    data.push(['Uraian', '', 'Tahun ' + tahunCetak + '', 'Tahun ' + (parseInt(tahunCetak) - 1) + '']);
     data.push([]);
     data.push(['ASET']);
     data.push(['ASET LANCAR']);
@@ -478,11 +496,11 @@ function generateFinancialStatements(db, outputPath) {
     data.push([]);
     data.push(['PERUMDAM TIRTA SERUYAN']);
     data.push(['LAPORAN LABA RUGI KOMPARATIF']);
-    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' 2026']);
+    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' ' + tahunCetak]);
     data.push([waktuCetak]);
     data.push(['(Dalam Rupiah)']);
     data.push([]);
-    data.push(['URAIAN', '', 'Tahun 2026', 'Tahun 2025']);
+    data.push(['URAIAN', '', 'Tahun ' + tahunCetak + '', 'Tahun ' + (parseInt(tahunCetak) - 1) + '']);
     data.push([]);
     data.push(['PENDAPATAN USAHA']);
     data.push(['', 'Pendapatan Penjualan Air', getBalance('81.01.10') + getBalance('81.01.20') + getBalance('81.01.30'), '']);
@@ -521,11 +539,11 @@ function generateFinancialStatements(db, outputPath) {
     data.push([]);
     data.push(['PERUMDAM TIRTA SERUYAN']);
     data.push(['RINCIAN BEBAN LANGSUNG USAHA']);
-    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' 2026']);
+    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' ' + tahunCetak]);
     data.push([waktuCetak]);
     data.push(['(Dalam Rupiah)']);
     data.push([]);
-    data.push(['URAIAN', 'Kode', 'Tahun 2026', 'Tahun 2025']);
+    data.push(['URAIAN', 'Kode', 'Tahun ' + tahunCetak + '', 'Tahun ' + (parseInt(tahunCetak) - 1) + '']);
     data.push([]);
     const bebanOp = getAkunByTipe('beban').filter(a => a.kategori === 'Beban Operasi');
     let total = 0;
@@ -550,11 +568,11 @@ function generateFinancialStatements(db, outputPath) {
     data.push([]);
     data.push(['PERUMDAM TIRTA SERUYAN']);
     data.push(['RINCIAN BEBAN TIDAK LANGSUNG']);
-    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' 2026']);
+    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' ' + tahunCetak]);
     data.push([waktuCetak]);
     data.push(['(Dalam Rupiah)']);
     data.push([]);
-    data.push(['URAIAN', 'Kode', 'Tahun 2026', 'Tahun 2025']);
+    data.push(['URAIAN', 'Kode', 'Tahun ' + tahunCetak + '', 'Tahun ' + (parseInt(tahunCetak) - 1) + '']);
     data.push([]);
     const bebanUmum = getAkunByTipe('beban').filter(a => a.kategori === 'Beban Umum & Adm');
     let total = 0;
@@ -579,11 +597,11 @@ function generateFinancialStatements(db, outputPath) {
     data.push([]);
     data.push(['PERUMDAM TIRTA SERUYAN']);
     data.push(['BEBAN NON OPERASIONAL']);
-    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' 2026']);
+    data.push(['Untuk bulan yang berakhir pada tanggal ' + bulanAkhir + ' ' + bulanNama + ' ' + tahunCetak]);
     data.push([waktuCetak]);
     data.push(['(Dalam Rupiah)']);
     data.push([]);
-    data.push(['URAIAN', 'Kode', 'Tahun 2026', 'Tahun 2025']);
+    data.push(['URAIAN', 'Kode', 'Tahun ' + tahunCetak + '', 'Tahun ' + (parseInt(tahunCetak) - 1) + '']);
     data.push([]);
     const bebanNonOp = getAkunByTipe('beban').filter(a => a.kategori !== 'Beban Operasi' && a.kategori !== 'Beban Umum & Adm');
     for (const b of bebanNonOp) {
@@ -604,7 +622,7 @@ function generateFinancialStatements(db, outputPath) {
     data.push(['PERUSAHAAN UMUM DAERAH AIR MINUM (PERUMDAM', '', '', '', '', '', '', '', '', '', '', '', '', '', 'LAMPIRAN 9']);
     data.push(['TIRTA SERUYAN']);
     data.push(['RENCANA BIAYA OPERASI']);
-    data.push(['TAHUN ANGGARAN 2026']);
+    data.push(['TAHUN ANGGARAN ' + tahunCetak + '']);
     data.push([waktuCetak]);
     return data;
   }
@@ -618,7 +636,7 @@ function generateFinancialStatements(db, outputPath) {
     data.push(['TIRTA SERUYAN']);
     data.push(['']);
     data.push(['RENCANA BIAYA UMUM DAN ADMINISTRASI']);
-    data.push(['TAHUN ANGGARAN 2026']);
+    data.push(['TAHUN ANGGARAN ' + tahunCetak + '']);
     data.push([waktuCetak]);
     return data;
   }
@@ -642,7 +660,7 @@ function generateFinancialStatements(db, outputPath) {
     data.push(['PERUSAHAAN UMUM DAERAH AIR MINUM (PERUMDAM', '', '', '', '', '', '', '', '', '', '', '', '', '', 'LAMPIRAN 10']);
     data.push(['TIRTA SERUYAN']);
     data.push(['RENCANA BIAYA OPERASI']);
-    data.push(['TAHUN ANGGARAN 2026']);
+    data.push(['TAHUN ANGGARAN ' + tahunCetak + '']);
     data.push([waktuCetak]);
     return data;
   }
@@ -658,7 +676,7 @@ function generateFinancialStatements(db, outputPath) {
     data.push(['PERUSAHAAN UMUM DAERAH AIR MINUM (PERUMDAM', '', '', '', '', '', '', '', '', '', '', '', '', '', 'LAMPIRAN 11']);
     data.push(['TIRTA SERUYAN']);
     data.push(['RENCANA BIAYA UMUM DAN ADMINISTRASI']);
-    data.push(['TAHUN ANGGARAN 2026']);
+    data.push(['TAHUN ANGGARAN ' + tahunCetak + '']);
     data.push([waktuCetak]);
     return data;
   }

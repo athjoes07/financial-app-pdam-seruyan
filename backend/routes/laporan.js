@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 
 module.exports = function(db) {
-  router.get('/neraca-saldo', (req, res) => {
-    const saldo = db.queryAll(`
+  router.get('/neraca-saldo', async (req, res) => {
+    const saldo = await db.queryAll(`
       SELECT a.id, a.kode, a.nama, a.tipe, a.saldo_normal,
            COALESCE(SUM(j.debit), 0) as total_debit,
            COALESCE(SUM(j.kredit), 0) as total_kredit
@@ -27,8 +27,8 @@ module.exports = function(db) {
     res.json(result);
   });
 
-  router.get('/laba-rugi', (req, res) => {
-    const data = db.queryAll(`
+  router.get('/laba-rugi', async (req, res) => {
+    const data = await db.queryAll(`
       SELECT a.tipe, a.nama, a.kode,
              COALESCE(SUM(j.debit), 0) as total_debit,
              COALESCE(SUM(j.kredit), 0) as total_kredit
@@ -63,8 +63,8 @@ module.exports = function(db) {
     res.json({ pendapatan, beban, totalPendapatan, totalBeban, labaBersih });
   });
 
-  router.get('/neraca', (req, res) => {
-    const data = db.queryAll(`
+  router.get('/neraca', async (req, res) => {
+    const data = await db.queryAll(`
       SELECT a.tipe, a.nama, a.kode, a.saldo_normal,
              COALESCE(SUM(j.debit), 0) as total_debit,
              COALESCE(SUM(j.kredit), 0) as total_kredit
@@ -82,7 +82,7 @@ module.exports = function(db) {
     let totalKewajiban = 0;
     let totalEkuitas = 0;
 
-    const labaData = db.queryAll(`
+    const labaData = await db.queryAll(`
       SELECT a.tipe,
              COALESCE(SUM(j.debit), 0) as total_debit,
              COALESCE(SUM(j.kredit), 0) as total_kredit

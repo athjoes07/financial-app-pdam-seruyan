@@ -91,7 +91,7 @@ const addTableStyles = (wb) => {
   }
 };
 
-function generateAllReports(db, outputDir) {
+async function generateAllReports(db, outputDir, exportDate = null) {
   const fs = require('fs');
   const path = require('path');
 
@@ -113,31 +113,31 @@ function generateAllReports(db, outputDir) {
 
   const jFile = 'JOURNAL.xlsx';
   try {
-    generateJournal(db, path.join(outputDir, jFile));
+    await generateJournal(db, path.join(outputDir, jFile), exportDate);
     results.push({ file: jFile, status: 'OK' });
   } catch (e) { results.push({ file: jFile, status: 'ERROR', error: e.message }); }
 
   const bbFile = 'BUKU BESAR.xlsx';
   try {
-    generateBukuBesar(db, path.join(outputDir, bbFile));
+    await generateBukuBesar(db, path.join(outputDir, bbFile), exportDate);
     results.push({ file: bbFile, status: 'OK' });
   } catch (e) { results.push({ file: bbFile, status: 'ERROR', error: e.message }); }
 
   const nlFile = 'NERACA LAJUR.xlsx';
   try {
-    generateNeracaLajur(db, path.join(outputDir, nlFile));
+    await generateNeracaLajur(db, path.join(outputDir, nlFile), exportDate);
     results.push({ file: nlFile, status: 'OK' });
   } catch (e) { results.push({ file: nlFile, status: 'ERROR', error: e.message }); }
 
   const fsFile = 'NERACA, RL, ARUS KAS.xlsx';
   try {
-    generateFinancialStatements(db, path.join(outputDir, fsFile));
+    await generateFinancialStatements(db, path.join(outputDir, fsFile), exportDate);
     results.push({ file: fsFile, status: 'OK' });
   } catch (e) { results.push({ file: fsFile, status: 'ERROR', error: e.message }); }
 
   const atFile = 'AUDIT_TRAIL.xlsx';
   try {
-    generateAuditTrail(db, path.join(outputDir, atFile));
+    await generateAuditTrail(db, path.join(outputDir, atFile), exportDate);
     results.push({ file: atFile, status: 'OK' });
   } catch (e) { results.push({ file: atFile, status: 'ERROR', error: e.message }); }
 
