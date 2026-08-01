@@ -226,8 +226,8 @@ export default function ProcessPage() {
         </div>
       </div>
 
-      {processTab === 'input' && (
-        <>
+
+      <>
       {/* Pipeline Visualization */}
       <div className="card">
         <div className="card-header">
@@ -495,8 +495,7 @@ export default function ProcessPage() {
           ))}
         </div>
       )}
-        </>
-      )}
+      </>
 
 
 

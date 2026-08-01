@@ -25,24 +25,19 @@ module.exports = function (db) {
       const fname = decodeURIComponent(req.params.filename);
       const filePath = path.join(inputDir, fname);
 
-      // 1. Delete from database (jurnal first due to FK, then transaksi)
-      try { await db.queryRun('PRAGMA foreign_keys = ON'); } catch (e) {}
-      await db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ?)', [fname]);
-      await db.queryRun('DELETE FROM transaksi WHERE sumber = ?', [fname]);
+      // 1. Delete from database — jurnal first (FK constraint), then transaksi
+      await db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = $1)', [fname]);
+      await db.queryRun('DELETE FROM transaksi WHERE sumber = $1', [fname]);
+      // Clean up any orphan jurnal just in case
       await db.queryRun('DELETE FROM jurnal WHERE transaksi_id NOT IN (SELECT id FROM transaksi)');
-      if (typeof db.saveDbAsync === 'function') await db.saveDbAsync();
 
-      // 2. PERMANENTLY delete from Supabase Storage
-      console.log(`[DELETE] Removing from Supabase: excel/${fname}`);
-      const { data: rmData, error: rmError } = await supabase.storage
-        .from('pdam-storage')
-        .remove([`excel/${fname}`]);
-      console.log(`[DELETE] Supabase remove result:`, JSON.stringify(rmData), rmError);
-      if (rmError) throw new Error('Supabase Storage error: ' + rmError.message);
+      // 2. Permanently delete from Supabase Storage (ignore error if file already gone)
+      const { error: rmError } = await supabase.storage.from('pdam-storage').remove([`excel/${fname}`]);
+      if (rmError) console.warn('[DELETE] Supabase Storage warning:', rmError.message);
 
-      // 3. Delete local file permanently
+      // 3. Delete local file if exists
       if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+        try { fs.unlinkSync(filePath); } catch(e) {}
       }
 
       res.json({ message: `File "${fname}" berhasil dihapus permanen dari sistem.`, deleted: true });
@@ -62,23 +57,18 @@ module.exports = function (db) {
         .filter(f => f.name !== '.emptyFolderPlaceholder' && /\.xlsx?$/i.test(f.name))
         .map(f => f.name);
 
-      console.log(`[DELETE-ALL] Found ${filenames.length} files in Supabase:`, filenames);
-
-      // 2. Delete all transactions & journals from database
-      try { await db.queryRun('PRAGMA foreign_keys = ON'); } catch(e) {}
+      // 2. Delete ALL transactions & journals from database
       await db.queryRun('DELETE FROM jurnal');
       await db.queryRun('DELETE FROM transaksi');
-      if (typeof db.saveDbAsync === 'function') await db.saveDbAsync();
 
-      // 3. PERMANENTLY delete all files from Supabase Storage (one by one to ensure success)
+      // 3. Permanently delete all files from Supabase Storage
       const deleteResults = [];
       for (const fname of filenames) {
-        const { data, error } = await supabase.storage.from('pdam-storage').remove([`excel/${fname}`]);
-        console.log(`[DELETE-ALL] Removed excel/${fname}:`, JSON.stringify(data), error);
+        const { error } = await supabase.storage.from('pdam-storage').remove([`excel/${fname}`]);
         deleteResults.push({ file: fname, success: !error, error: error?.message });
       }
 
-      // 4. Delete all local files permanently
+      // 4. Delete all local files if any
       if (fs.existsSync(inputDir)) {
         const localFiles = fs.readdirSync(inputDir).filter(f => /\.xlsx?$/i.test(f));
         for (const f of localFiles) {
