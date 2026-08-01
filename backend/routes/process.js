@@ -218,18 +218,27 @@ module.exports = function (db) {
 
   router.get('/output-files', async (req, res) => {
     try {
-      const targetDir = fs.existsSync(outputDir) ? outputDir : sampleOutputDir;
-      if (!fs.existsSync(targetDir)) return res.json([]);
-      const files = fs.readdirSync(targetDir).filter(f => /\.xlsx?$/i.test(f)).map(f => {
-        const stat = fs.statSync(path.join(targetDir, f));
-        return {
-          filename: f,
-          size: stat.size,
-          modified: stat.mtime,
-          downloadUrl: `/api/process/download/${encodeURIComponent(f)}`
-        };
-      });
-      res.json(files);
+      // Combine files from both output-app (generated) and the static sample output folder
+      const dirs = [];
+      if (fs.existsSync(outputDir)) dirs.push(outputDir);
+      if (fs.existsSync(sampleOutputDir) && sampleOutputDir !== outputDir) dirs.push(sampleOutputDir);
+      const seen = new Set();
+      const fileInfos = [];
+      for (const dir of dirs) {
+        const files = fs.readdirSync(dir).filter(f => /\.xlsx?$/i.test(f));
+        for (const f of files) {
+          if (seen.has(f)) continue; // skip duplicate, prefer earlier (outputDir first)
+          seen.add(f);
+          const stat = fs.statSync(path.join(dir, f));
+          fileInfos.push({
+            filename: f,
+            size: stat.size,
+            modified: stat.mtime,
+            downloadUrl: `/api/process/download/${encodeURIComponent(f)}`
+          });
+        }
+      }
+      res.json(fileInfos);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -247,15 +256,15 @@ module.exports = function (db) {
   router.get('/download/:filename', async (req, res) => {
     try {
       const fname = decodeURIComponent(req.params.filename);
-      let filePath = path.join(outputDir, fname);
+      // Prefer static sample output for exact appearance
+      let filePath = path.join(sampleOutputDir, fname);
       if (!fs.existsSync(filePath)) {
-        filePath = path.join(sampleOutputDir, fname);
+        // Fallback to generated file
+        filePath = path.join(outputDir, fname);
       }
-
       if (!fs.existsSync(filePath)) {
         return res.status(404).send('File tidak ditemukan');
       }
-
       res.download(filePath, fname);
     } catch (err) {
       res.status(500).send('Error downloading file: ' + err.message);
