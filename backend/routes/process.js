@@ -218,27 +218,21 @@ module.exports = function (db) {
 
   router.get('/output-files', async (req, res) => {
     try {
-      // Combine files from both output-app (generated) and the static sample output folder
-      const dirs = [];
-      if (fs.existsSync(outputDir)) dirs.push(outputDir);
-      if (fs.existsSync(sampleOutputDir) && sampleOutputDir !== outputDir) dirs.push(sampleOutputDir);
-      const seen = new Set();
-      const fileInfos = [];
-      for (const dir of dirs) {
-        const files = fs.readdirSync(dir).filter(f => /\.xlsx?$/i.test(f));
-        for (const f of files) {
-          if (seen.has(f)) continue; // skip duplicate, prefer earlier (outputDir first)
-          seen.add(f);
-          const stat = fs.statSync(path.join(dir, f));
-          fileInfos.push({
+      // Serve the static sample output files (the reference set of reports)
+      const targetDir = fs.existsSync(sampleOutputDir) ? sampleOutputDir : outputDir;
+      if (!fs.existsSync(targetDir)) return res.json([]);
+      const files = fs.readdirSync(targetDir)
+        .filter(f => /\.xlsx?$/i.test(f))
+        .map(f => {
+          const stat = fs.statSync(path.join(targetDir, f));
+          return {
             filename: f,
             size: stat.size,
             modified: stat.mtime,
             downloadUrl: `/api/process/download/${encodeURIComponent(f)}`
-          });
-        }
-      }
-      res.json(fileInfos);
+          };
+        });
+      res.json(files);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
