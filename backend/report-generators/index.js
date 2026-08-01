@@ -109,6 +109,13 @@ async function generateAllReports(db, outputDir, exportDate = null) {
     }
   }
 
+  // If there are no transactions, skip generating reports – nothing to output
+  const txnCountRes = await db.queryOne('SELECT COUNT(*) as cnt FROM transaksi');
+  if (!txnCountRes || (txnCountRes.cnt ?? 0) === 0) {
+    // No data – return empty result list (no files generated)
+    return [];
+  }
+
   const results = [];
 
   const jFile = 'JOURNAL.xlsx';
