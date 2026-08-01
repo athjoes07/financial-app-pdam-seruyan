@@ -123,6 +123,31 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
   dataTidakMasuk.push(['']);
   dataTidakMasuk.push(['No', 'Data Input', 'Lokasi File/Sheet/Cell', 'Alasan Tidak Diproses', 'Rekomendasi']);
 
+  let dtmNo = 1;
+
+  for (const f of sortedFiles) {
+    if (!dbFilesMap[f]) {
+      let alasan = 'Format file tidak dikenali atau isi kosong';
+      let rekomendasi = 'Pastikan file menggunakan format Excel LPP atau DRD yang valid';
+      
+      const fLower = f.toLowerCase();
+      if (fLower.includes('rekap user') || fLower.includes('rekap_user')) {
+        alasan = 'File rangkuman rekapitulasi (duplikat dengan rincian per loket)';
+        rekomendasi = 'Abaikan (Data sudah masuk melalui file LPP per loket)';
+      } else if (!fLower.includes('drd') && !fLower.includes('lpp')) {
+         alasan = 'Bukan file laporan LPP atau DRD';
+         rekomendasi = 'Hapus file ini, hanya gunakan LPP (Laporan Penerimaan) atau DRD (Daftar Rekening)';
+      } else if (f.startsWith('~$')) {
+         alasan = 'File temporary/terkunci oleh sistem';
+         rekomendasi = 'Tutup file Excel yang sedang terbuka di komputer sebelum memproses';
+      } else {
+         alasan = 'Gagal diekstrak (format tidak sesuai template)';
+         rekomendasi = 'Periksa isi file, pastikan posisi baris dan kolom sesuai template aplikasi';
+      }
+      dataTidakMasuk.push([dtmNo++, f, 'Folder Input', alasan, rekomendasi]);
+    }
+  }
+
   const allAkun = await db.queryAll('SELECT COUNT(*) as cnt FROM akun');
   const akunWithTx = await db.queryAll('SELECT COUNT(DISTINCT a.id) as cnt FROM akun a INNER JOIN jurnal j ON j.akun_id = a.id');
   const totalAkun = allAkun[0]?.cnt || 0;
@@ -130,7 +155,11 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
   const akunUnused = totalAkun - akunUsed;
 
   if (akunUnused > 0) {
-    dataTidakMasuk.push([1, 'Akun tanpa transaksi', 'COA Master', akunUnused + ' akun tidak ada jurnal', 'Periksa apakah ada transaksi yang belum diproses']);
+    dataTidakMasuk.push([dtmNo++, 'Akun tanpa transaksi', 'COA Master', akunUnused + ' akun tidak ada jurnal', 'Periksa apakah ada transaksi yang belum diproses']);
+  }
+
+  if (dtmNo === 1) {
+    dataTidakMasuk.push(['-', 'Tidak ada data', '-', '-', '-']);
   }
 
   dataTidakMasuk.push(['', '', '', '', '']);
