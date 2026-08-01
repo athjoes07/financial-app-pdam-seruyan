@@ -121,7 +121,7 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
   const dataTidakMasuk = [];
   dataTidakMasuk.push(['AUDIT TRAIL - DATA INPUT YANG TIDAK MASUK OUTPUT']);
   dataTidakMasuk.push(['']);
-  dataTidakMasuk.push(['No', 'Data Input', 'Lokasi File/Sheet/Cell', 'Alasan Tidak Diproses', 'Detail Penjelasan', 'Rekomendasi']);
+  dataTidakMasuk.push(['No', 'Data Input', 'Lokasi File/Sheet/Cell', 'Alasan Tidak Diproses', 'Detail Penjelasan', 'Rincian Data / Akun', 'Rekomendasi']);
 
   let dtmNo = 1;
 
@@ -149,7 +149,7 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
          penjelasan = 'File terbaca sebagai LPP/DRD, namun sistem gagal menarik angkanya. Mungkin ada merge cell, password, atau teks di kolom yang seharusnya angka.';
          rekomendasi = 'Un-merge semua sel di file Excel, pastikan kolom nominal berisi Angka (bukan teks/rumus error), lalu simpan ulang (Save As) dan upload lagi.';
       }
-      dataTidakMasuk.push([dtmNo++, f, 'Folder Input', alasan, penjelasan, rekomendasi]);
+      dataTidakMasuk.push([dtmNo++, f, 'Folder Input', alasan, penjelasan, '-', rekomendasi]);
     }
   }
 
@@ -161,20 +161,20 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
 
   if (akunUnused > 0) {
     const unusedAkunRows = await db.queryAll('SELECT kode, nama FROM akun WHERE id NOT IN (SELECT DISTINCT akun_id FROM jurnal) ORDER BY kode');
-    const unusedListStr = unusedAkunRows.map(a => `${a.kode} - ${a.nama}`).join(', ');
-    const penjelasanUnused = `${akunUnused} akun di master COA belum pernah digunakan dalam transaksi apapun sepanjang periode ini.\n\nDaftar Akun yang tidak terpakai:\n${unusedListStr}`;
+    const unusedListStr = unusedAkunRows.map(a => `${a.kode} - ${a.nama}`).join('\n');
+    const penjelasanUnused = `${akunUnused} akun di master COA belum pernah digunakan dalam transaksi apapun sepanjang periode ini.`;
     
-    dataTidakMasuk.push([dtmNo++, 'Akun tanpa transaksi', 'COA Master', 'Tidak ada pergerakan/jurnal', penjelasanUnused, 'Buat transaksi (Penerimaan/Pengeluaran/Jurnal Umum) yang melibatkan kode akun ini agar datanya muncul di laporan Neraca/Laba Rugi.']);
+    dataTidakMasuk.push([dtmNo++, 'Akun tanpa transaksi', 'COA Master', 'Tidak ada pergerakan/jurnal', penjelasanUnused, unusedListStr, 'Buat transaksi (Penerimaan/Pengeluaran/Jurnal Umum) yang melibatkan kode akun ini agar datanya muncul di laporan Neraca/Laba Rugi.']);
   }
 
   if (dtmNo === 1) {
-    dataTidakMasuk.push(['-', 'Tidak ada data', '-', '-', '-', '-']);
+    dataTidakMasuk.push(['-', 'Tidak ada data', '-', '-', '-', '-', '-']);
   }
 
-  dataTidakMasuk.push(['', '', '', '', '', '']);
+  dataTidakMasuk.push(['', '', '', '', '', '', '']);
 
   const outputFileSheet2 = XLSX.utils.aoa_to_sheet(dataTidakMasuk);
-  outputFileSheet2['!cols'] = [{ wch: 5 }, { wch: 30 }, { wch: 20 }, { wch: 25 }, { wch: 50 }, { wch: 50 }];
+  outputFileSheet2['!cols'] = [{ wch: 5 }, { wch: 30 }, { wch: 20 }, { wch: 25 }, { wch: 50 }, { wch: 40 }, { wch: 50 }];
   XLSX.utils.book_append_sheet(wb, outputFileSheet2, 'Data Tidak Masuk Output');
 
   // === SHEET 5: COA Usage ===
