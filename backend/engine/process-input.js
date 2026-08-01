@@ -1,3 +1,5 @@
+// Added hash check for duplicate content
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const XLSX = require('xlsx-js-style');
@@ -21,12 +23,20 @@ async function processInputFiles(db, inputDir) {
     const filePath = path.join(inputDir, file);
 
     try {
-      // DUPLICATE CHECK: Tolak file duplikat otomatis
-      const existing = await db.queryOne('SELECT id FROM transaksi WHERE sumber = ? LIMIT 1', [file]);
-      if (existing) {
-        results.errors.push(`File ${file} sudah pernah diproses. Ditolak untuk mencegah data ganda.`);
+      // Duplicate detection: compare file hash to previously processed hashes
+      const fileBuffer = fs.readFileSync(filePath);
+      const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+      const existingHash = await db.queryOne('SELECT filename FROM file_hashes WHERE hash = ?', [fileHash]);
+      if (existingHash) {
+        results.errors.push(`File ${file} dengan konten yang sama sudah diproses sebelumnya (hash ${fileHash}).`);
         continue;
       }
+      if (typeof db.queryRun === 'function') {
+        try {
+          await db.queryRun('INSERT INTO file_hashes (hash, filename, processed_at) VALUES (?, ?, datetime("now"))', [fileHash, file]);
+        } catch (e) { /* ignore errors when saving hash */ }
+      }
+
 
       if (file.toLowerCase().includes('rekap drd') || file.toLowerCase().includes('drd')) {
         const parsed = drdParser.parse(filePath);
