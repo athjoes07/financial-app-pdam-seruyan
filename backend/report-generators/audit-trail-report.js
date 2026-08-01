@@ -121,30 +121,35 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
   const dataTidakMasuk = [];
   dataTidakMasuk.push(['AUDIT TRAIL - DATA INPUT YANG TIDAK MASUK OUTPUT']);
   dataTidakMasuk.push(['']);
-  dataTidakMasuk.push(['No', 'Data Input', 'Lokasi File/Sheet/Cell', 'Alasan Tidak Diproses', 'Rekomendasi']);
+  dataTidakMasuk.push(['No', 'Data Input', 'Lokasi File/Sheet/Cell', 'Alasan Tidak Diproses', 'Detail Penjelasan', 'Rekomendasi']);
 
   let dtmNo = 1;
 
   for (const f of sortedFiles) {
     if (!dbFilesMap[f]) {
-      let alasan = 'Format file tidak dikenali atau isi kosong';
-      let rekomendasi = 'Pastikan file menggunakan format Excel LPP atau DRD yang valid';
+      let alasan = 'Format tidak dikenali/kosong';
+      let penjelasan = 'Sistem tidak menemukan baris data yang bisa dibaca. Hal ini terjadi karena format (posisi kolom/baris) tidak sesuai standar aplikasi atau file memang kosong.';
+      let rekomendasi = 'Salin (copy-paste) data Anda ke dalam file template standar (DRD/LPP) yang sudah disediakan sistem, lalu upload ulang.';
       
       const fLower = f.toLowerCase();
       if (fLower.includes('rekap user') || fLower.includes('rekap_user')) {
-        alasan = 'File rangkuman rekapitulasi (duplikat dengan rincian per loket)';
-        rekomendasi = 'Abaikan (Data sudah masuk melalui file LPP per loket)';
+        alasan = 'File Rekapitulasi (Duplikat)';
+        penjelasan = 'File ini terdeteksi sebagai file rekap. Memproses file ini akan menyebabkan pembengkakan nilai karena data sebenarnya sudah diproses per-loket.';
+        rekomendasi = 'Biarkan saja file ini tidak diproses karena data aslinya (LPP loket) sudah diinput ke dalam sistem.';
       } else if (!fLower.includes('drd') && !fLower.includes('lpp')) {
-         alasan = 'Bukan file laporan LPP atau DRD';
-         rekomendasi = 'Hapus file ini, hanya gunakan LPP (Laporan Penerimaan) atau DRD (Daftar Rekening)';
+         alasan = 'File Tidak Didukung';
+         penjelasan = 'Sistem hanya dirancang untuk membaca dokumen "LPP" dan "DRD". Nama file ini tidak mengandung kata kunci tersebut.';
+         rekomendasi = 'Ubah nama file dengan menyertakan kata "LPP" atau "DRD" (contoh: "LPP Mei.xlsx"), dan pastikan isinya memang LPP/DRD lalu upload ulang.';
       } else if (f.startsWith('~$')) {
-         alasan = 'File temporary/terkunci oleh sistem';
-         rekomendasi = 'Tutup file Excel yang sedang terbuka di komputer sebelum memproses';
+         alasan = 'File Temporary/Terkunci';
+         penjelasan = 'Ini adalah file "bayangan" yang dibuat otomatis oleh Microsoft Excel ketika Anda sedang membuka file aslinya. File ini tidak memiliki data nyata.';
+         rekomendasi = 'Tutup aplikasi Microsoft Excel yang sedang digunakan. Hapus file yang berawalan "~$" ini melalui menu Tempat Sampah.';
       } else {
-         alasan = 'Gagal diekstrak (format tidak sesuai template)';
-         rekomendasi = 'Periksa isi file, pastikan posisi baris dan kolom sesuai template aplikasi';
+         alasan = 'Gagal Ekstrak Data (Error)';
+         penjelasan = 'File terbaca sebagai LPP/DRD, namun sistem gagal menarik angkanya. Mungkin ada merge cell, password, atau teks di kolom yang seharusnya angka.';
+         rekomendasi = 'Un-merge semua sel di file Excel, pastikan kolom nominal berisi Angka (bukan teks/rumus error), lalu simpan ulang (Save As) dan upload lagi.';
       }
-      dataTidakMasuk.push([dtmNo++, f, 'Folder Input', alasan, rekomendasi]);
+      dataTidakMasuk.push([dtmNo++, f, 'Folder Input', alasan, penjelasan, rekomendasi]);
     }
   }
 
@@ -155,17 +160,17 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
   const akunUnused = totalAkun - akunUsed;
 
   if (akunUnused > 0) {
-    dataTidakMasuk.push([dtmNo++, 'Akun tanpa transaksi', 'COA Master', akunUnused + ' akun tidak ada jurnal', 'Periksa apakah ada transaksi yang belum diproses']);
+    dataTidakMasuk.push([dtmNo++, 'Akun tanpa transaksi', 'COA Master', 'Tidak ada pergerakan/jurnal', akunUnused + ' akun di master COA belum pernah digunakan dalam transaksi apapun sepanjang periode ini.', 'Buat transaksi (Penerimaan/Pengeluaran/Jurnal Umum) yang melibatkan kode akun ini agar datanya muncul di laporan Neraca/Laba Rugi.']);
   }
 
   if (dtmNo === 1) {
-    dataTidakMasuk.push(['-', 'Tidak ada data', '-', '-', '-']);
+    dataTidakMasuk.push(['-', 'Tidak ada data', '-', '-', '-', '-']);
   }
 
-  dataTidakMasuk.push(['', '', '', '', '']);
+  dataTidakMasuk.push(['', '', '', '', '', '']);
 
   const outputFileSheet2 = XLSX.utils.aoa_to_sheet(dataTidakMasuk);
-  outputFileSheet2['!cols'] = [{ wch: 5 }, { wch: 30 }, { wch: 25 }, { wch: 40 }, { wch: 40 }];
+  outputFileSheet2['!cols'] = [{ wch: 5 }, { wch: 30 }, { wch: 20 }, { wch: 25 }, { wch: 50 }, { wch: 50 }];
   XLSX.utils.book_append_sheet(wb, outputFileSheet2, 'Data Tidak Masuk Output');
 
   // === SHEET 5: COA Usage ===
