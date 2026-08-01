@@ -1,5 +1,5 @@
-const crypto = require('crypto');
 const fs = require('fs');
+const path = require('path');
 const XLSX = require('xlsx-js-style');
 
 const drdParser = require('../input-processors/drd-parser');
@@ -7,9 +7,6 @@ const lppParser = require('../input-processors/lpp-parser');
 
 async function processInputFiles(db, inputDir) {
   const results = { files_processed: [], transactions: [], errors: [] };
-
-  // Ensure file_hashes table exists
-  await db.queryRun('CREATE TABLE IF NOT EXISTS file_hashes (hash TEXT PRIMARY KEY, filename TEXT, processed_at TEXT)');
 
   if (!fs.existsSync(inputDir)) {
     results.errors.push('Input directory not found: ' + inputDir);
@@ -63,7 +60,9 @@ async function processInputFiles(db, inputDir) {
             results.transactions.push({ id: txId, desc, total: totalDM });
           }
         }
-      } else if (file.toLowerCase().includes('lpp tgl')) {
+      }
+
+      if (file.toLowerCase().includes('lpp tgl')) {
         // REKAP USER is a summary file — data is already in individual loket files
         if (file.toLowerCase().includes('rekap user') || file.toLowerCase().includes('rekap_user')) {
           results.files_processed.push('LPP-REKAP: ' + file + ' (rangkuman, tidak diproses ulang)');
@@ -78,12 +77,12 @@ async function processInputFiles(db, inputDir) {
         const totalAirAdm = parsed.total_air + parsed.total_adm;
         const totalDM = parsed.total_dm || 0;
         const totalDenda = parsed.total_denda || 0;
-
+        
         const actualTotalKas = totalAirAdm + totalDM + totalDenda;
 
         if (actualTotalKas > 0) {
           const desc = 'Penerimaan Rek Air (' + parsed.sumber + ')';
-
+          
           const entries = [
             { kode: '11.01.00', debit: actualTotalKas, kredit: 0 }
           ];
@@ -95,10 +94,6 @@ async function processInputFiles(db, inputDir) {
           const txId = await createTx(db, tgl, desc, entries, file);
           results.transactions.push({ id: txId, desc, total: actualTotalKas });
         }
-      } else {
-        // Unknown file type: record as processed without creating transactions
-        results.files_processed.push('File tidak dikenali (diproses tanpa transaksi): ' + file);
-        continue;
       }
     } catch (err) {
       results.errors.push('Error processing ' + file + ': ' + err.message);

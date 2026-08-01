@@ -1,6 +1,6 @@
 const XLSX = require('xlsx-js-style');
 
-async function generateAuditTrail(db, outputPath) {
+async function generateAuditTrail(db, outputPath, exportDate = null) {
   const wb = XLSX.utils.book_new();
 
   const now = new Date();
@@ -8,7 +8,7 @@ async function generateAuditTrail(db, outputPath) {
 
   // === SHEET 1: Input File Map ===
   const inputFileMap = [];
-  inputFileMap.push(['AUDIT TRAIL - INPUT FILE MAP LAPORAN KEUANGAN']);
+  inputFileMap.push(['AUDIT TRAIL - INPUT FILE MAP LAPORAN KEU']);
   inputFileMap.push(['']);
   inputFileMap.push(['No', 'File Input', 'Sheet Name', 'Baris (Row)', 'Kolom (Col)', 'Data Diekstrak', 'Tujuan (add_tx / Output)', 'Status']);
 
@@ -38,26 +38,7 @@ async function generateAuditTrail(db, outputPath) {
   let processedCount = 0;
   for (const f of sortedFiles) {
     if (processedSet.has(f)) {
-      // Extract column names (first row) and a sample data row for processed files
-            let colNames = '-';
-            let sampleData = '-';
-            try {
-              const wbTmp = XLSX.readFile(path.join(inputDir, f));
-              const wsTmp = wbTmp.Sheets[wbTmp.SheetNames[0]];
-              const rangeTmp = XLSX.utils.decode_range(wsTmp['!ref'] || 'A1');
-              // Header row (first row) – we will report column range only
-              const startCol = String.fromCharCode(65 + rangeTmp.s.c);
-              const endCol = String.fromCharCode(65 + rangeTmp.e.c);
-              const colRange = `${startCol}:${endCol}`;
-              colNames = colRange;
-              // Sample data row (second row if exists) – we will report row range of actual data
-              const firstDataRow = rangeTmp.s.r + 2; // Excel rows are 1‑based; header is row 1
-              const lastDataRow = rangeTmp.e.r + 1;
-              sampleData = `${firstDataRow}-${lastDataRow}`;
-            } catch (e) {
-              // keep placeholders if reading fails
-            }
-            inputFileMap.push([no++, f, 'Sheet0', 'Semua baris', colNames, sampleData, 'Input ke DB', 'TERPROSES']);
+      inputFileMap.push([no++, f, 'Sheet0', 'Semua baris', '-', '-', 'Input ke DB', 'TERPROSES']);
       processedCount++;
     } else {
       let alasan = 'TIDAK DIPROSES';
