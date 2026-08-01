@@ -38,7 +38,36 @@ async function generateAuditTrail(db, outputPath, exportDate = null) {
   let processedCount = 0;
   for (const f of sortedFiles) {
     if (processedSet.has(f)) {
-      inputFileMap.push([no++, f, 'Sheet0', 'Semua baris', '-', '-', 'Input ke DB', 'TERPROSES']);
+      // Extract column names (first row) and a sample data row for processed files
+            let colNames = '-';
+            let sampleData = '-';
+            try {
+              const wbTmp = XLSX.readFile(path.join(inputDir, f));
+              const wsTmp = wbTmp.Sheets[wbTmp.SheetNames[0]];
+              const rangeTmp = XLSX.utils.decode_range(wsTmp['!ref'] || 'A1');
+              // Header row (first row)
+              const headerVals = [];
+              for (let c = rangeTmp.s.c; c <= rangeTmp.e.c; c++) {
+                const addr = XLSX.utils.encode_cell({ r: rangeTmp.s.r, c });
+                const cell = wsTmp[addr];
+                if (cell && cell.v != null) headerVals.push(String(cell.v).trim());
+              }
+              colNames = headerVals.filter(v => v).join(', ');
+              // Sample data row (second row if exists)
+              const dataRow = rangeTmp.s.r + 1;
+              if (dataRow <= rangeTmp.e.r) {
+                const sampleVals = [];
+                for (let c = rangeTmp.s.c; c <= rangeTmp.e.c; c++) {
+                  const addr = XLSX.utils.encode_cell({ r: dataRow, c });
+                  const cell = wsTmp[addr];
+                  if (cell && cell.v != null) sampleVals.push(String(cell.v).trim());
+                }
+                sampleData = sampleVals.filter(v => v).join(', ');
+              }
+            } catch (e) {
+              // keep placeholders if reading fails
+            }
+            inputFileMap.push([no++, f, 'Sheet0', 'Semua baris', colNames, sampleData, 'Input ke DB', 'TERPROSES']);
       processedCount++;
     } else {
       let alasan = 'TIDAK DIPROSES';
