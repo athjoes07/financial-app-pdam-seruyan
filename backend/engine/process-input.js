@@ -1,5 +1,5 @@
+const crypto = require('crypto');
 const fs = require('fs');
-const path = require('path');
 const XLSX = require('xlsx-js-style');
 
 const drdParser = require('../input-processors/drd-parser');
@@ -7,6 +7,9 @@ const lppParser = require('../input-processors/lpp-parser');
 
 async function processInputFiles(db, inputDir) {
   const results = { files_processed: [], transactions: [], errors: [] };
+
+  // Ensure file_hashes table exists
+  await db.queryRun('CREATE TABLE IF NOT EXISTS file_hashes (hash TEXT PRIMARY KEY, filename TEXT, processed_at TEXT)');
 
   if (!fs.existsSync(inputDir)) {
     results.errors.push('Input directory not found: ' + inputDir);
