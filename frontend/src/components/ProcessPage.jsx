@@ -117,9 +117,12 @@ export default function ProcessPage() {
     try {
       const res = await fetch(`${API_URL}/api/process/delete-input/${encodeURIComponent(filename)}`, { method: 'DELETE' })
       const data = await res.json()
-      window.alert(data.message)
-      fetchFileList()
+      if (!res.ok) throw new Error(data.error || 'Gagal menghapus file')
+      // Immediately remove from UI without waiting for re-fetch
+      setInputFiles(prev => prev.filter(f => f.filename !== filename))
       fetchTrashList()
+      // Re-fetch after delay to ensure Supabase is in sync
+      setTimeout(() => fetchFileList(), 1500)
     } catch (err) {
       window.alert('Gagal menghapus file: ' + err.message)
     }
@@ -132,9 +135,12 @@ export default function ProcessPage() {
       const res = await fetch(`${API_URL}/api/process/delete-all-input`, { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Terjadi kesalahan')
-      window.alert(data.message)
-      fetchFileList()
+      // Immediately clear UI
+      setInputFiles([])
       fetchTrashList()
+      // Re-fetch after delay to ensure Supabase is in sync
+      setTimeout(() => fetchFileList(), 1500)
+      window.alert(data.message)
     } catch (err) {
       window.alert('Gagal menghapus semua file: ' + err.message)
     }
