@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { auth, signInWithEmailAndPassword } from '../firebase';
+import { supabase } from '../supabaseClient';
 import './Login.css'; // We'll add some styles in App.css or Login.css
 
 export default function Login() {
@@ -14,7 +14,14 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) {
+        throw error;
+      }
     } catch (err) {
       console.error('Login error:', err);
       setError('Gagal login. Periksa kembali email dan password Anda.');

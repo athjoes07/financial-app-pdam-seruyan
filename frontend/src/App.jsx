@@ -8,7 +8,7 @@ import AuditTrailPage from './components/AuditTrailPage'
 import FirebasePage from './components/FirebasePage'
 import Login from './components/Login'
 import { getTransaksi } from './api'
-import { auth, onAuthStateChanged, signOut, db, doc, getDoc, setDoc } from './firebase'
+import { supabase } from './supabaseClient'
 import './style.css'
 
 const navItems = [
@@ -56,40 +56,60 @@ export default function App() {
 
   // Listen to Auth State
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        // Try to fetch user profile from Firestore
-        try {
-          const userDocRef = doc(db, 'users', currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) {
-            setUserProfile(userDocSnap.data());
-          } else {
-            // Profile belum ada, buat otomatis
-            const defaultProfile = {
-              nama: currentUser.uid === 'p7hWsFiwZ3fSy2Zq3lFhVv3EqsS2' ? 'tes akuntan' : (currentUser.email.split('@')[0] || 'User'),
-              role: 'Akuntan'
-            };
-            try {
-              await setDoc(userDocRef, defaultProfile);
-              setUserProfile(defaultProfile);
-            } catch (err) {
-              console.error("Gagal membuat profil default (kemungkinan Firestore rules):", err);
-              setUserProfile(defaultProfile); // Tetap tampilkan di UI meskipun gagal simpan
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching user profile:", error);
-        }
-      } else {
-        setUserProfile(null);
-      }
-      setAuthLoading(false);
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleUserSession(session?.user || null);
     });
 
-    return () => unsubscribe();
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      handleUserSession(session?.user || null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const handleUserSession = async (currentUser) => {
+    setUser(currentUser);
+    if (currentUser) {
+      // Try to fetch user profile from Supabase
+      try {
+        const { data: profile, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', currentUser.id)
+          .single();
+
+        if (profile) {
+          setUserProfile(profile);
+        } else {
+          // Profile belum ada, buat otomatis
+          const defaultProfile = {
+            id: currentUser.id,
+            nama: currentUser.id === 'p7hWsFiwZ3fSy2Zq3lFhVv3EqsS2' ? 'tes akuntan' : (currentUser.email?.split('@')[0] || 'User'),
+            role: 'Akuntan'
+          };
+          
+          try {
+            const { error: insertError } = await supabase
+              .from('users')
+              .insert([defaultProfile]);
+              
+            if (insertError) throw insertError;
+            setUserProfile(defaultProfile);
+          } catch (err) {
+            console.error("Gagal membuat profil default (kemungkinan Supabase RLS):", err);
+            setUserProfile(defaultProfile); // Tetap tampilkan di UI meskipun gagal simpan
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
+    } else {
+      setUserProfile(null);
+    }
+    setAuthLoading(false);
+  };
 
   // Prefetch transactions for fast searching
   useEffect(() => {
@@ -140,7 +160,7 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
     } catch (error) {
       console.error("Error signing out: ", error);
     }
@@ -154,7 +174,7 @@ export default function App() {
     return <Login />
   }
 
-  const displayName = userProfile?.nama || user.email.split('@')[0];
+  const displayName = userProfile?.nama || user?.email?.split('@')[0] || 'User';
 
   return (
     <div className="app-layout">
