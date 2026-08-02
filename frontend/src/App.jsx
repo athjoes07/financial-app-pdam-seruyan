@@ -8,7 +8,7 @@ import AuditTrailPage from './components/AuditTrailPage'
 import FirebasePage from './components/FirebasePage'
 import Login from './components/Login'
 import { getTransaksi } from './api'
-import { auth, onAuthStateChanged, signOut, db, doc, getDoc } from './firebase'
+import { auth, onAuthStateChanged, signOut, db, doc, getDoc, setDoc } from './firebase'
 import './style.css'
 
 const navItems = [
@@ -66,7 +66,18 @@ export default function App() {
           if (userDocSnap.exists()) {
             setUserProfile(userDocSnap.data());
           } else {
-            setUserProfile(null);
+            // Profile belum ada, buat otomatis
+            const defaultProfile = {
+              nama: currentUser.uid === 'p7hWsFiwZ3fSy2Zq3lFhVv3EqsS2' ? 'tes akuntan' : (currentUser.email.split('@')[0] || 'User'),
+              role: 'Akuntan'
+            };
+            try {
+              await setDoc(userDocRef, defaultProfile);
+              setUserProfile(defaultProfile);
+            } catch (err) {
+              console.error("Gagal membuat profil default (kemungkinan Firestore rules):", err);
+              setUserProfile(defaultProfile); // Tetap tampilkan di UI meskipun gagal simpan
+            }
           }
         } catch (error) {
           console.error("Error fetching user profile:", error);
