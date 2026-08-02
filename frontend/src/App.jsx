@@ -6,7 +6,9 @@ import Neraca from './components/Neraca'
 import ProcessPage from './components/ProcessPage'
 import AuditTrailPage from './components/AuditTrailPage'
 import FirebasePage from './components/FirebasePage'
+import Login from './components/Login'
 import { getTransaksi } from './api'
+import { auth, onAuthStateChanged, signOut, db, doc, getDoc } from './firebase'
 import './style.css'
 
 const navItems = [
@@ -22,6 +24,11 @@ export default function App() {
   const [page, setPage] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentTime, setCurrentTime] = useState('')
+  
+  // Auth states
+  const [user, setUser] = useState(null)
+  const [userProfile, setUserProfile] = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
 
   // Search feature states
   const [globalSearch, setGlobalSearch] = useState('')
@@ -46,6 +53,32 @@ export default function App() {
     const timer = setInterval(updateTime, 60000)
     return () => clearInterval(timer)
   }, [])
+
+  // Listen to Auth State
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        // Try to fetch user profile from Firestore
+        try {
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            setUserProfile(userDocSnap.data());
+          } else {
+            setUserProfile(null);
+          }
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+        }
+      } else {
+        setUserProfile(null);
+      }
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Prefetch transactions for fast searching
   useEffect(() => {
@@ -93,6 +126,24 @@ export default function App() {
     }
     setShowNotifDropdown(!showNotifDropdown)
   }
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
+  }
+
+  if (authLoading) {
+    return <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Loading...</div>
+  }
+
+  if (!user) {
+    return <Login />
+  }
+
+  const displayName = userProfile?.nama || user.email.split('@')[0];
 
   return (
     <div className="app-layout">
@@ -238,6 +289,35 @@ export default function App() {
                   </div>
                 </div>
               )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '0.5rem', paddingLeft: '1rem', borderLeft: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-primary)' }}>{displayName}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{userProfile?.role || 'Akuntan'}</span>
+              </div>
+              <button 
+                onClick={handleLogout}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.35rem 0.5rem',
+                  cursor: 'pointer',
+                  color: 'var(--danger)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  fontSize: '0.75rem'
+                }}
+                title="Keluar"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+              </button>
             </div>
 
             <button className="toggle-btn hide-mobile" onClick={() => setSidebarOpen(!sidebarOpen)} title="Menu">

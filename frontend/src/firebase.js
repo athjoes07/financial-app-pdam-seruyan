@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics, isSupported } from "firebase/analytics";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, updateDoc, Timestamp } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, updateDoc, Timestamp, getDoc } from "firebase/firestore";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -27,13 +28,15 @@ if (typeof window !== "undefined") {
   });
 }
 
-// Initialize Firestore
+// Initialize Firestore and Auth
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 export {
   app,
   analytics,
   db,
+  auth,
   collection,
   addDoc,
   getDocs,
@@ -42,5 +45,9 @@ export {
   deleteDoc,
   doc,
   updateDoc,
-  Timestamp
+  Timestamp,
+  getDoc,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
 };
