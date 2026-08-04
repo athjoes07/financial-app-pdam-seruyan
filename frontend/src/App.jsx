@@ -212,6 +212,10 @@ export default function App() {
             <span className="nav-icon">🔍</span>
             <span className="nav-label">Research Engine</span>
           </a>
+          <button className="nav-btn" onClick={handleLogout} style={{ color: 'var(--danger)', marginTop: 'auto' }}>
+            <span className="nav-icon">🚪</span>
+            <span className="nav-label">Keluar (Logout)</span>
+          </button>
         </nav>
       </aside>
 
@@ -348,6 +352,7 @@ export default function App() {
                   <polyline points="16 17 21 12 16 7"></polyline>
                   <line x1="21" y1="12" x2="9" y2="12"></line>
                 </svg>
+                Keluar
               </button>
             </div>
 
