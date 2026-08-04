@@ -23,21 +23,15 @@ async function processInputFiles(db, inputDir) {
     const filePath = path.join(inputDir, file);
 
     try {
-      // Duplicate detection: compare file hash to previously processed hashes
-      const fileBuffer = fs.readFileSync(filePath);
-      const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
-      const existingHash = await db.queryOne('SELECT filename FROM file_hashes WHERE hash = ?', [fileHash]);
-      if (existingHash) {
-        results.errors.push(`File ${file} dengan konten yang sama sudah diproses sebelumnya (hash ${fileHash}).`);
-        continue;
-      }
+      // Idempotency: Bersihkan data lama dari database yang berasal dari file ini
       if (typeof db.queryRun === 'function') {
         try {
-          await db.queryRun('INSERT INTO file_hashes (hash, filename, processed_at) VALUES (?, ?, datetime("now"))', [fileHash, file]);
-        } catch (e) { /* ignore errors when saving hash */ }
+          await db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ?)', [file]);
+          await db.queryRun('DELETE FROM transaksi WHERE sumber = ?', [file]);
+        } catch (e) {
+          console.error('Error membersihkan data lama untuk file:', file, e);
+        }
       }
-
-
       if (file.toLowerCase().includes('rekap drd') || file.toLowerCase().includes('drd')) {
         const parsed = drdParser.parse(filePath);
         results.files_processed.push(parsed.source + ': ' + file);
