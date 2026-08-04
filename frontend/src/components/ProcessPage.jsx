@@ -10,6 +10,7 @@ export default function ProcessPage() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [uploadStatus, setUploadStatus] = useState('')
+  const [isLoadingFiles, setIsLoadingFiles] = useState(true)
   const [downloadFormat, setDownloadFormat] = useState('xls')
   const [processTab, setProcessTab] = useState('input')
   const [exportDate, setExportDate] = useState(() => {
@@ -34,6 +35,7 @@ export default function ProcessPage() {
   }, []);
 
   async function fetchFileList() {
+    setIsLoadingFiles(true)
     try {
       const [resIn, resOut] = await Promise.all([
         fetch(`${API_URL}/api/process/input-files`),
@@ -45,6 +47,8 @@ export default function ProcessPage() {
       if (Array.isArray(dataOut)) setOutputFiles(dataOut)
     } catch (err) {
       console.error('Error fetching file list:', err)
+    } finally {
+      setIsLoadingFiles(false)
     }
   }
 
@@ -337,7 +341,12 @@ export default function ProcessPage() {
 
           {uploadStatus && <div className="alert alert-info" style={{ fontSize: '0.8rem' }}>{uploadStatus}</div>}
 
-          {inputFiles.length > 0 ? (
+          {isLoadingFiles ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
+              <div className="spinner" style={{ margin: '0 auto 1rem auto' }}></div>
+              <p>Menyinkronkan file dengan server...</p>
+            </div>
+          ) : inputFiles.length > 0 ? (
             <>
               {/* Desktop Table */}
               <div className="table-wrap process-desktop-table" style={{ maxHeight: '300px', overflowY: 'auto' }}>
@@ -433,7 +442,12 @@ export default function ProcessPage() {
 
           {/* Desktop list */}
           <div className="process-desktop-table">
-          {outputFiles.length > 0 ? outputFiles.map((item, i) => (
+          {isLoadingFiles ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
+              <div className="spinner" style={{ margin: '0 auto 1rem auto' }}></div>
+              <p>Menyinkronkan laporan dengan server...</p>
+            </div>
+          ) : outputFiles.length > 0 ? outputFiles.map((item, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.625rem 0', borderBottom: i < outputFiles.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
               <div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>📄 {item.filename}</div>
