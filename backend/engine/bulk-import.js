@@ -219,6 +219,10 @@ async function bulkImport(db, inputDir) {
   for (const file of files) {
     const filePath = path.join(inputDir, file);
     try {
+      // PENTING: Mencegah Duplikasi
+      // Hapus data transaksi dan jurnal lama yang berasal dari file ini sebelum mengimpor ulang
+      await db.queryRun('DELETE FROM jurnal WHERE transaksi_id IN (SELECT id FROM transaksi WHERE sumber = ?)', [file]);
+      await db.queryRun('DELETE FROM transaksi WHERE sumber = ?', [file]);
       if (file.toLowerCase().includes('daftar voucher')) {
         const txs = await parseDaftarVoucher(db, filePath, file);
         results.files_processed.push('DaftarVoucher: ' + file + ' (' + txs.length + ' transaksi)');
