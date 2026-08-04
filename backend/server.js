@@ -97,18 +97,18 @@ function startSetupMode(errorMsg) {
 
   app.post('/setup', (req, res) => {
     const { DATABASE_URL, SUPABASE_URL, SUPABASE_KEY } = req.body;
-    const envContent = \`SUPABASE_URL=\${SUPABASE_URL}\nSUPABASE_KEY=\${SUPABASE_KEY}\nDATABASE_URL=\${DATABASE_URL}\n\`;
+    const envContent = `SUPABASE_URL=${SUPABASE_URL}\nSUPABASE_KEY=${SUPABASE_KEY}\nDATABASE_URL=${DATABASE_URL}\n`;
     const envPath = path.join(__dirname, '..', '.env');
     
     try {
       fs.writeFileSync(envPath, envContent);
-      res.send(\`
+      res.send(`
         <div style="font-family:sans-serif;text-align:center;margin-top:50px;">
           <h2 style="color:#059669;">Konfigurasi berhasil disimpan ke file .env!</h2>
           <p>Server akan direstart dalam beberapa detik...</p>
           <p>Silakan <a href="/">Klik disini untuk memuat ulang aplikasi</a>.</p>
         </div>
-      \`);
+      `);
       console.log('Konfigurasi .env diperbarui via Setup Mode. Merestart server...');
       setTimeout(() => process.exit(1), 1500); // Exit so nodemon or hosting platform restarts the server
     } catch(e) {
@@ -121,7 +121,7 @@ function startSetupMode(errorMsg) {
     console.log('\\n====================================================');
     console.log('  ⚠️  SERVER BERJALAN DALAM "SETUP MODE" (RAW EDITOR)');
     console.log('====================================================');
-    console.log(\`  Buka http://localhost:\${PORT} untuk mengatur .env\`);
+    console.log(`  Buka http://localhost:${PORT} untuk mengatur .env`);
     console.log('====================================================\\n');
   });
 }
@@ -152,9 +152,9 @@ if (!process.env.VERCEL) {
       console.log('\\n====================================================');
       console.log('  🚀  SERVER KEUANGAN PDAM SERUYAN AKTIF');
       console.log('====================================================');
-      console.log(\`  ✅  Lokal     : http://localhost:\${PORT}\`);
+      console.log(`  ✅  Lokal     : http://localhost:${PORT}`);
       for (const ip of localIPs) {
-        console.log(\`  🌐  Jaringan  : http://\${ip}:\${PORT}  ← akses dari HP/tablet\`);
+        console.log(`  🌐  Jaringan  : http://${ip}:${PORT}  ← akses dari HP/tablet`);
       }
       console.log('====================================================');
       console.log('  Semua perangkat di jaringan Wi-Fi/LAN yang sama');
