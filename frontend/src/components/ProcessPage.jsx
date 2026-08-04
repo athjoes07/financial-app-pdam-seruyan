@@ -244,12 +244,14 @@ export default function ProcessPage() {
                 onClick={handleProcess}
                 disabled={loading || inputFiles.length === 0}
               >
-                {loading && (
-                <div style={{ marginTop: '0.5rem', width: '100%' }}>
-                  <progress value={progress} max="100" style={{ width: '100%' }} />
-                  <div style={{ textAlign: 'center', fontSize: '0.85rem', marginTop: '0.25rem' }}>{progress}%</div>
-                </div>
-              )}
+                {loading ? (
+                  <div style={{ marginTop: '0.2rem', width: '100px' }}>
+                    <progress value={progress} max="100" style={{ width: '100%' }} />
+                    <div style={{ textAlign: 'center', fontSize: '0.75rem' }}>{progress}%</div>
+                  </div>
+                ) : (
+                  '⚙️ Proses Sekarang'
+                )}
               </button>
             </div>
           </div>
