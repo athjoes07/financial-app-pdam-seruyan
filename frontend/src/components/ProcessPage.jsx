@@ -25,6 +25,7 @@ export default function ProcessPage() {
   const fileInputRef = useRef(null)
 
   useEffect(() => {
+    fetchFileList()
     return () => {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current)
