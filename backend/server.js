@@ -15,6 +15,7 @@ async function main() {
   app.use('/api/transaksi', require('./routes/transaksi')(db));
   app.use('/api/laporan', require('./routes/laporan')(db));
   app.use('/api/process', require('./routes/process')(db));
+  app.use('/api/auth', require('./routes/auth')(db));
 
   // Serve frontend static files only on local (not Vercel — Vercel serves from outputDirectory)
   if (!process.env.VERCEL) {

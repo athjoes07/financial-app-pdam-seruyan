@@ -98,6 +98,17 @@ async function initDatabase() {
     )
   `);
 
+  await run(`
+    CREATE TABLE IF NOT EXISTS login_sessions (
+      id SERIAL PRIMARY KEY,
+      user_email TEXT NOT NULL,
+      login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      ip_address TEXT DEFAULT '',
+      user_agent TEXT DEFAULT '',
+      status TEXT DEFAULT 'SUCCESS'
+    )
+  `);
+
   // Insert Default COA if empty
   const countRes = await queryOne('SELECT COUNT(*) as cnt FROM akun');
   if (parseInt(countRes.cnt) === 0) {
